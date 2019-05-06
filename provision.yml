@@ -1,0 +1,299 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  vars:
+    base_segment: '192.168.55'
+  
+  tasks:
+    - name: set hostname
+      hostname:
+        name: foglab
+    - name: Install packages
+      package:
+        name: "{{ list }}"
+      vars:
+        list:
+          - ntp
+          - dnsmasq
+          - lxd
+          - lxd-client
+          - criu
+          - unzip
+          - bridge-utils
+          - thin-provisioning-tools
+    
+    - name: Add storage volume
+      block:
+        - name: Extend VG
+          lvg:
+            vg: vagrant-vg
+            pvs: /dev/sda1,/dev/sdb
+
+        - name: Create LV
+          lvol:
+            vg: vagrant-vg
+            lv: storage
+            size: 100%FREE
+            shrink: no
+            state: present
+        
+        - name: Create file system for storage
+          filesystem:
+            fstype: ext4
+            dev: /dev/mapper/vagrant--vg-storage
+
+        - name: Create mount point
+          file:
+            path: /storage
+            owner: root
+            group: root
+            mode: 01777
+            state: directory
+
+        - name: Mount storage and write entry in fstab
+          mount:
+            name: /storage
+            src: /dev/mapper/vagrant--vg-storage
+            fstype: ext4
+            state: mounted
+
+    - name: Add group 'lxd' to user 'vagrant'
+      user:
+        name: vagrant
+        groups: lxd
+        append: yes
+    
+    - name: Performance settings
+      block:
+        - name: Load br_netfilter
+          command: "modprobe br_netfilter"
+
+        - name: sysctl changes
+          sysctl:
+            name: "{{ item.name }}"
+            value: "{{ item.value }}"
+            reload: yes
+          loop:
+            - { name: net.ipv4.ip_forward, value: 1 }
+            - { name: net.ipv4.conf.all.rp_filter, value: 0 } 
+            - { name: net.ipv4.conf.all.proxy_arp, value: 1 }
+            - { name: net.ipv4.tcp_keepalive_time, value: 600 } 
+            - { name: net.ipv4.tcp_keepalive_intvl, value: 60 }
+            - { name: net.ipv4.tcp_keepalive_probes, value: 20 }
+            - { name: net.ipv4.ip_nonlocal_bind, value: 1 }
+            - { name: net.ipv4.conf.all.accept_redirects, value: 1 }
+            - { name: net.ipv4.conf.all.send_redirects, value: 1 }
+            - { name: net.ipv4.conf.all.accept_source_route, value: 1 }
+            - { name: net.ipv4.tcp_mem, value: 182757 243679 365514 }
+            - { name: net.ipv4.conf.all.shared_media, value: 1 }
+            - { name: net.ipv6.conf.all.disable_ipv6, value: 1 }
+            - { name: net.ipv6.conf.default.disable_ipv6, value: 1 }
+            - { name: net.ipv6.conf.lo.disable_ipv6, value: 1 }
+            - { name: net.core.netdev_max_backlog, value: 182757 }
+            - { name: net.bridge.bridge-nf-call-iptables, value: 1 }
+            - { name: fs.inotify.max_queued_events, value: 1048576 }
+            - { name: fs.inotify.max_user_instances, value: 1048576 }
+            - { name: fs.inotify.max_user_watches, value: 1048576 }
+            - { name: vm.max_map_count, value: 262144 }
+            - { name: kernel.dmesg_restrict, value: 0}
+
+        - name: Limits changes
+          lineinfile:
+            path: /etc/security/limits.conf
+            line: "{{ item }}"
+          loop:
+            - "* soft nofile 1048576" 
+            - "* hard nofile 1048576" 
+            - "root soft nofile 1048576" 
+            - "root hard nofile 1048576" 
+            - "* soft memlock unlimited" 
+            - "* hard memlock unlimited" 
+
+    - name: Security settings
+      block:
+        - name: Disable ufw (this is a lab :) )
+          service:
+            name: ufw
+            state: stopped
+
+        - name: Remove ssh host check
+          become: vagrant
+          blockinfile:
+            path: ~/.ssh/config
+            create: yes
+            block: |
+              Host *
+                StrictHostKeyChecking no
+                UserKnownHostsFile=/dev/null
+  
+    - name: LXD configuration
+      block:
+        - name: Init LXD
+          shell:
+            cmd: |
+              cat <<EOF | lxd init --preseed
+              config:
+                core.https_address: 127.0.0.1:8443
+                core.trust_password: mclab
+              networks:
+              - name: lxdbr0
+                type: bridge
+                config:
+                  bridge.driver: native
+                  bridge.external_interfaces: eth1
+                  bridge.mode: standard
+                  ipv4.address: {{ base_segment }}.100/24
+                  ipv4.dhcp: true
+                  ipv4.dhcp.ranges: "{{ base_segment }}.101-{{ base_segment }}.254"
+                  ipv4.firewall: false
+                  ipv4.nat: "true"
+                  ipv4.routing: true
+                  ipv6.address: none
+                  dns.domain: mclab
+                  dns.mode: managed
+                  raw.dnsmasq: |
+                    dhcp-option-force=26,1500
+                    server=127.0.0.1
+              storage_pools:
+              - name: lxd
+                driver: lvm
+                config:
+                  volume.size: 150GB
+                  source: /dev/sdc
+              profiles:
+              - name: default
+                config:
+                  boot.autostart: true
+                  linux.kernel_modules: bridge,br_netfilter,x_tables,ip_tables,ip6_tables,ip_vs,ip_vs,ip_vs_rr,ip_vs_wrr,ip_vs_sh,nf_conntrack_ipv4,ip_set,ipip,xt_mark,xt_multiport,ip_tunnel,tunnel4,netlink_diag,nfnetlink,nf_nat,overlay
+                  raw.lxc: |
+                    lxc.apparmor.profile=unconfined
+                    lxc.mount.auto=proc:rw sys:rw cgroup:rw
+                    lxc.cgroup.devices.allow=a
+                    lxc.cap.drop=
+                  security.nesting: "true"
+                  security.privileged: "true"
+                devices:
+                  aadisable:
+                    path: /sys/module/nf_conntrack/parameters/hashsize
+                    source: /dev/null
+                    type: disk
+                  aadisable1:
+                    path: /sys/module/apparmor/parameters/enabled
+                    source: /dev/null
+                    type: disk
+                  eth0:
+                    name: eth0
+                    nictype: bridged
+                    parent: lxdbr0
+                    type: nic
+                    mtu: 1500
+                  root:
+                    path: /
+                    pool: lxd
+                    type: disk
+                  mem:
+                    type: unix-char
+                    path: /dev/mem
+                
+              cluster: null
+              EOF
+            creates: /var/lib/lxd/server.crt
+
+        - name: Relax LXD security (used for disk attach)
+          command: "echo Y | tee {{ item }}"
+          loop:
+            - /sys/module/fuse/parameters/userns_mounts
+            - /sys/module/ext4/parameters/userns_mounts
+
+    - name: Terraform
+      block:
+        - name: Download terraform
+          get_url:
+            url: https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip
+            dest: /tmp/terraform.zip
+            checksum: sha256:94504f4a67bad612b5c8e3a4b7ce6ca2772b3c1559630dfd71e9c519e3d6149c
+        
+        - name: Extract terraform
+          unarchive:
+            src: /tmp/terraform.zip
+            dest: /usr/local/bin
+            remote_src: yes
+            owner: vagrant
+            group: vagrant
+        
+        - name: Download terraform-lxd plugin
+          get_url:
+            url: https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.3/terraform-provider-lxd_v1.1.3_linux_amd64.zip
+            dest: /tmp/terraform_lxd.zip
+        
+        - name: Extract terraform-lxd plugin
+          unarchive:
+            src: /tmp/terraform_lxd.zip
+            dest: /usr/local/bin
+            owner: vagrant
+            group: vagrant
+
+        - name: Download terraform-inventory plugin
+          get_url:
+            url: https://github.com/adammck/terraform-inventory/releases/download/v0.8/terraform-inventory_v0.8_linux_amd64.zip
+            dest: /tmp/terraform-inventory.zip
+        
+        - name: Extract terraform-inventory plugin
+          unarchive:
+            src: /tmp/terraform-inventory.zip
+            dest: /usr/local/bin
+            owner: vagrant
+            group: vagrant
+
+    - name: localActions
+      block:
+        - name: create directory
+          file:
+            path: /opt/foglab/localActions
+            owner: root
+            group: root
+            mode: 01755
+            state: directory
+        - name: Copy the files
+          copy:
+            src: /tmp/localActions/
+            dest: /opt/foglab/localActions
+            owner: root
+            group: root
+            mode: 0644
+        
+    - name: scripts
+      block:
+        - name: create directory
+          file:
+            path: /opt/foglab/scripts
+            owner: root
+            group: root
+            mode: 01755
+            state: directory
+        - name: copy the files
+          copy:
+            src: /tmp/scripts/
+            dest: /opt/foglab/scripts
+            owner: root
+            group: root
+            mode: 0655
+        - name: config foglab symbolic link
+          file:
+            dest: /usr/local/bin/foglab
+            src: /opt/foglab/scripts/foglab.sh
+            state: link
+
+    - name: cleanup
+      block:
+        - name: cleanup /tmp
+          file:
+            path: "/tmp/{{ item }}"
+            state: absent
+          loop:
+            - scripts
+            - localActions
+          

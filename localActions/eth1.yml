@@ -1,0 +1,38 @@
+- hosts: localhost
+  become: yes
+  become_method: sudo
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: no
+    
+  tasks:
+    - name: eth1 on
+      block:
+        - name: config eth1
+          blockinfile:
+            path: /etc/network/interfaces
+            create: no
+            block: |
+              post-up ifconfig eth1 promisc on
+              iface eth1 inet manual
+        
+        - name: bring eth1 up
+          command: ip link set dev eth1 up
+      tags:
+        - "on"
+    
+    - name: eth1 off
+      block:
+        - name: bring eth1 down
+          command: ip link set dev eth1 down
+
+        - name: remove config eth1
+          blockinfile:
+            path: /etc/network/interfaces
+            create: no
+            state: absent
+            block: |
+              post-up ifconfig eth1 promisc on
+              iface eth1 inet manual
+      tags:
+        - "off"

@@ -1,0 +1,47 @@
+{
+  "builders": [
+    {
+      "communicator": "ssh",
+      "source_path": "bento/ubuntu-18.04",
+      "box_version": "201812.27.0",
+      "add_force": true,
+      "provider": "virtualbox",
+      "output_dir" : "build",
+      "type": "vagrant",
+      "template": "vagrantBuild"
+    }
+  ],
+  "provisioners":[
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+          "apt-add-repository ppa:ansible/ansible",
+          "/usr/bin/apt-get update",
+          "/usr/bin/apt-get -y install ansible"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "./localActions",
+      "destination": "/tmp"
+    },
+    {
+      "type": "file",
+      "source": "./scripts",
+      "destination": "/tmp"
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "provision.yml"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'vagrant' | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "scripts": [
+          "cleanup.sh"
+      ]
+    }
+  ]
+}
+
