@@ -1,7 +1,10 @@
 #!/bin/bash
 
-aptProxy="192.168.55.100:3142"
-sshKeyFile="/home/vagrant/.ssh/id_rsa.pub"
+sshPubKeyFile="/home/vagrant/.ssh/id_rsa.pub"
+
+# use the vagrant public key for all LXC images
+grep vagrant /home/vagrant/.ssh/authorized_keys | tee ${sshPubKeyFile}
+chmod 644 ${sshPubKeyFile}
 
 # Add SSH key from local file to container root user
 # Parameters:
@@ -9,7 +12,7 @@ sshKeyFile="/home/vagrant/.ssh/id_rsa.pub"
 #   $2 => fullpath to local file with public SSH key
 addSSHKey () {
   name=${1:-"noname"}
-  file=${2:-"nofile"}
+  file=${2:-"nokey"}
   dest=/root/id_rsa.pub
   lxc file push $file $name/$dest
   lxc exec $name -- bash  <<EOF
@@ -27,11 +30,10 @@ EOF
 prepareUbuntu () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
-  echo 'Acquire::http::Proxy "http://${aptProxy}";' | tee /etc/apt/apt.conf.d/02proxy
   apt-get install python-minimal aptitude -y
 EOF
 
-addSSHKey ${name} ${sshKeyFile}
+addSSHKey ${name} ${sshPubKeyFile}
 
 }
 
@@ -41,18 +43,12 @@ addSSHKey ${name} ${sshKeyFile}
 prepareCentOs () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
-  # cache with yum is inconsistent. Disabling it until a better solution is found
-  # echo 'proxy=http://${aptProxy}' | tee --append /etc/yum.conf
-  # sed -i 's/enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf
   yum install -y openssh-server.x86_64
-  # The command below will install the missing packages in the container to align the images.
-  # This may be changes in the future to optimize the lab.
-  # yum groups install -y "Minimal Install"
   systemctl start sshd
   systemctl enable sshd
 EOF
 
-addSSHKey ${name} ${sshKeyFile}
+addSSHKey ${name} ${sshPubKeyFile}
 
 }
 

@@ -68,6 +68,19 @@
     
     - name: Performance settings
       block:
+        - name: Remove any swap
+          command: "swapoff -a"
+
+        - name: Remove original swap entry in fstab
+          mount: 
+            name: none
+            src: "/dev/mapper/vagrant--vg-swap_1"
+            fstype: swap
+            opts: sw
+            passno: 0
+            dump: 0
+            state: absent
+
         - name: Load br_netfilter
           command: "modprobe br_netfilter"
 
@@ -264,6 +277,23 @@
             owner: root
             group: root
             mode: 0644
+    
+    - name: Examples
+      block:
+        - name: create directory
+          file:
+            path: /opt/foglab/examples
+            owner: root
+            group: root
+            mode: 01755
+            state: directory
+        - name: Copy the files
+          copy:
+            src: /tmp/examples/
+            dest: /opt/foglab/examples
+            owner: root
+            group: root
+            mode: 0644
         
     - name: scripts
       block:
@@ -296,4 +326,5 @@
           loop:
             - scripts
             - localActions
+            - examples
           

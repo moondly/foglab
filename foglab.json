@@ -28,6 +28,11 @@
     },
     {
       "type": "file",
+      "source": "./examples",
+      "destination": "/tmp"
+    },
+    {
+      "type": "file",
       "source": "./scripts",
       "destination": "/tmp"
     },

@@ -40,7 +40,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     ```
     mkdir mylab
     cd mylab
-    cp /opt/foglab/examples/lab101.yml .
+    cp /opt/foglab/examples/lab101.tf .
     terraform init
     terraform apply
     ```
@@ -65,8 +65,8 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
 
 ### To pause time (and resume it)
 ```
-vagrant supend
-vagrant reload
+vagrant suspend
+vagrant up
 ```
 
 ### To destroy foglab
