@@ -74,10 +74,10 @@ vagrant up
 vagrant destroy
 ```
 
-# Details
+## Details
 TODO
 
-# Building a vagrant basebox
+## Building a vagrant basebox
 To build a vagrant basebox do:
 1. Make sure you have VirtualBox, Vagrant and Packer installed
 1. Clone the git repo locally
