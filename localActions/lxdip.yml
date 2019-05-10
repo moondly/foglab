@@ -1,0 +1,18 @@
+- hosts: localhost
+  become: yes
+  become_method: sudo
+  any_errors_fatal: true
+  max_fail_percentage: 0
+  gather_facts: no
+  vars:
+    base_segment: '192.168.55'
+    
+  tasks:
+    - debug:
+        var: base_segment
+        
+    - name: set ip for the bridge
+      command: "lxc network set lxdbr0 ipv4.address '{{ base_segment }}.100/24'"
+    
+    - name: set dhcp range
+      command: "lxc network set lxdbr0 ipv4.dhcp.ranges '{{ base_segment }}.101-{{ base_segment }}.254'"

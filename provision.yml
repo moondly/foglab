@@ -6,6 +6,8 @@
   max_fail_percentage: 0
   vars:
     base_segment: '192.168.55'
+    homedir: /opt/foglab
+
   
   tasks:
     - name: set hostname
@@ -141,7 +143,13 @@
               Host *
                 StrictHostKeyChecking no
                 UserKnownHostsFile=/dev/null
-  
+    
+    - name: Add group 'lxd' to user 'vagrant'
+      user:
+        name: vagrant
+        groups: lxd
+        append: yes
+
     - name: LXD configuration
       block:
         - name: Init LXD
@@ -265,7 +273,7 @@
       block:
         - name: create directory
           file:
-            path: /opt/foglab/localActions
+            path: "{{ homedir }}/localActions"
             owner: root
             group: root
             mode: 01755
@@ -273,7 +281,7 @@
         - name: Copy the files
           copy:
             src: /tmp/localActions/
-            dest: /opt/foglab/localActions
+            dest: "{{ homedir }}/localActions"
             owner: root
             group: root
             mode: 0644
@@ -282,7 +290,7 @@
       block:
         - name: create directory
           file:
-            path: /opt/foglab/examples
+            path: "{{ homedir }}/examples"
             owner: root
             group: root
             mode: 01755
@@ -290,16 +298,16 @@
         - name: Copy the files
           copy:
             src: /tmp/examples/
-            dest: /opt/foglab/examples
+            dest: "{{ homedir }}/examples"
             owner: root
             group: root
             mode: 0644
         
-    - name: scripts
+    - name: Scripts
       block:
         - name: create directory
           file:
-            path: /opt/foglab/scripts
+            path: "{{ homedir }}/scripts"
             owner: root
             group: root
             mode: 01755
@@ -307,17 +315,17 @@
         - name: copy the files
           copy:
             src: /tmp/scripts/
-            dest: /opt/foglab/scripts
+            dest: "{{ homedir }}/scripts"
             owner: root
             group: root
             mode: 0655
         - name: config foglab symbolic link
           file:
             dest: /usr/local/bin/foglab
-            src: /opt/foglab/scripts/foglab.sh
+            src: "{{ homedir }}/scripts/foglab.sh"
             state: link
 
-    - name: cleanup
+    - name: Cleanup
       block:
         - name: cleanup /tmp
           file:
@@ -327,4 +335,20 @@
             - scripts
             - localActions
             - examples
+
+    - name: Register metadata
+      lineinfile:
+        path: /etc/profile.d/foglab.sh
+        line: "export {{ item.name }}={{ item.value }}"
+        create: yes
+        owner: root
+        group: root
+        mode: 644
+      loop:
+        - { name: "FOGLAB_HOME", value: "{{ homedir}}" }
+        - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }
+        - { name: "FOGLAB_BUILD_DATE", value: "{{ ansible_facts['date_time']['iso8601'] }}" }
+        
+        
+
           

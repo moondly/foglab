@@ -6,7 +6,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
 1. Create a `Vagrantfile` with the content below:
 
     ```
-    # The base_segment cannot be changed in the current version.  
+    # Make sure this value do not overlap with any local network. Change it if necessary.
     base_segment = '192.168.55'
 
     Vagrant.configure("2") do |config|
@@ -18,14 +18,14 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
         v.cpus = 4
       end
 
-      # Will configure the eth1 interface (-i on) and activate the system swap (-s on)
+      # Will configure the eth1 interface (-i on), activate the system swap (-s on) and configure the base_segment
       config.vm.provision "shell",
-        inline: "foglab -i on && foglab -s on"
+        inline: "foglab -i on && foglab -s on && foglab -b #{base_segment}"
 
     end
     ```
 
-    You can adapt the `cpu` and `memory` accordingly. The `base_segment` cannot be changed in the current version. This will come in furture releases. For now, just make sure this do not overlaps with any other local network.
+    You can adapt the `cpu` and `memory` accordingly. Please adapt the IP `base_segment` if it overlaps any other local network. Your labs will receive IPs from the range `<base_segment>.101-254.`
     
     The `eth1` interface allows you to connecto to the LXD hosts from your local machine. 
     
@@ -86,6 +86,7 @@ This would not be possible without the great work and nice ideas from:
 - Virtualbox (https://www.virtualbox.org/wiki/VirtualBox)
 - Terraform LXD Provider (https://github.com/sl1pm4t/terraform-provider-lxd/)
 - Terraform Inventory (https://github.com/adammck/terraform-inventory)
+- http://chef.github.io/bento
 
 Thanks guys!
 
