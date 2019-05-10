@@ -77,6 +77,23 @@ vagrant destroy
 # Details
 TODO
 
+# Building a vagrant basebox
+To build a vagrant basebox do:
+1. Make sure you have VirtualBox, Vagrant and Packer installed
+1. Clone the git repo locally
+1. While inside the repo folder type:
+    ```
+    packer build -force foglab.json
+    ```
+1. The image will be created under the `build` folder
+
+You can then import the image to Vagrant like below:
+```
+vagrant box add myimage build/package.box
+```
+
+After that, you can use Vagrant normally and reference `myimage` as the source.
+
 # No man is an island...
 This would not be possible without the great work and nice ideas from:
 
