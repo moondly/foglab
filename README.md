@@ -25,11 +25,11 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     end
     ```
 
-    You can adapt the `cpu` and `memory` accordingly. Please adapt the IP `base_segment` if it overlaps any other local network. Your labs will receive IPs from the range `<base_segment>.101-254.`
+    You can adapt the `cpu` and `memory` accordingly. Please adapt the IP `base_segment` if it overlaps with any other local network. Your labs will receive IPs from the range `<base_segment>.101-254.`
     
     The `eth1` interface allows you to connecto to the LXD hosts from your local machine. 
     
-    You can use or not `swap` depending on your available system memory. Please notice that some labs may force swap to be disabled (kubernetes for instance).
+    You can use or not `swap` depending on the system memory available. Please notice that some applications may force swap to be disabled (kubernetes for instance).
 
 1. Start and login:
     ```
