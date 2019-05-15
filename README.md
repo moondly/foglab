@@ -18,7 +18,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
         v.cpus = 4
       end
 
-      # Will configure the eth1 interface (-i on), activate the system swap (-s on) and configure the base_segment
+      # Will configure the eth1 interface (-i on), activate the system swap (-s on) and configure the base_segment (-b)
       config.vm.provision "shell",
         inline: "foglab -i on && foglab -s on && foglab -b #{base_segment}"
 
