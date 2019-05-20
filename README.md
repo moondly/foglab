@@ -49,11 +49,6 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     lxc list
     ```
 
-1. Destroy it
-    ```
-    terraform destroy
-    ```
-
 1. Connect from you local machine
 
     Note the IP from `lxc list` and connect from your local machine using SSH and the vagrant private key:
@@ -61,6 +56,11 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     vagrant ssh-config | grep IdentityFile 
     
     ssh -i <IdentityFile> root@<ip>
+    ```
+  
+1. Destroy it
+    ```
+    terraform destroy
     ```
 
 ### To pause time (and resume it)
