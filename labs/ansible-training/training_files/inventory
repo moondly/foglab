@@ -1,0 +1,13 @@
+[all]
+web1 ansible_ssh_host=192.168.55.181
+web2 ansible_ssh_host=192.168.55.182
+db1 ansible_ssh_host=192.168.55.191
+db2 ansible_ssh_host=192.168.55.192
+[web]
+web1
+web2
+[db]
+db1
+db2
+[backup]
+db2
