@@ -36,8 +36,8 @@
             src: "{{ swap_file_path }}"
             fstype: swap
             opts: sw
-            passno: 0
-            dump: 0
+            passno: "0"
+            dump: "0"
             state: present
 
         - name: Mount swap
@@ -75,8 +75,8 @@
             src: "{{ swap_file_path }}"
             fstype: swap
             opts: sw
-            passno: 0
-            dump: 0
+            passno: "0"
+            dump: "0"
             state: absent
 
         - name: Unmount swap

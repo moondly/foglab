@@ -30,7 +30,7 @@ EOF
 prepareUbuntu () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
-  apt-get install python-minimal aptitude -y
+  apt-get install python-minimal -y
 EOF
 
 addSSHKey ${name} ${sshPubKeyFile}
@@ -43,7 +43,7 @@ addSSHKey ${name} ${sshPubKeyFile}
 prepareCentOs () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
-  yum install -y openssh-server.x86_64
+  yum install -y openssh-server.x86_64 ntp
   systemctl start sshd
   systemctl enable sshd
 EOF

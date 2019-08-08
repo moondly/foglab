@@ -7,6 +7,7 @@
   vars:
     base_segment: '192.168.55'
     homedir: /opt/foglab
+    timezone: Etc/UTC
 
   
   tasks:
@@ -14,11 +15,11 @@
       hostname:
         name: foglab
     - name: Install packages
-      package:
+      apt:
         name: "{{ list }}"
+        force_apt_get: yes
       vars:
         list:
-          - ntp
           - dnsmasq
           - lxd
           - lxd-client
@@ -27,6 +28,10 @@
           - bridge-utils
           - thin-provisioning-tools
     
+    - name: Set timezone
+      timezone:
+        name: "{{ timezone }}"
+
     - name: Add storage volume
       block:
         - name: Extend VG
@@ -79,8 +84,8 @@
             src: "/dev/mapper/vagrant--vg-swap_1"
             fstype: swap
             opts: sw
-            passno: 0
-            dump: 0
+            passno: "0"
+            dump: "0"
             state: absent
 
         - name: Load br_netfilter
@@ -158,7 +163,7 @@
               cat <<EOF | lxd init --preseed
               config:
                 core.https_address: 127.0.0.1:8443
-                core.trust_password: mclab
+                core.trust_password: foglab
               networks:
               - name: lxdbr0
                 type: bridge
@@ -173,7 +178,7 @@
                   ipv4.nat: "true"
                   ipv4.routing: true
                   ipv6.address: none
-                  dns.domain: mclab
+                  dns.domain: foglab
                   dns.mode: managed
                   raw.dnsmasq: |
                     dhcp-option-force=26,1500
@@ -233,9 +238,9 @@
       block:
         - name: Download terraform
           get_url:
-            url: https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip
+            url: https://releases.hashicorp.com/terraform/0.12.6/terraform_0.12.6_linux_amd64.zip
             dest: /tmp/terraform.zip
-            checksum: sha256:94504f4a67bad612b5c8e3a4b7ce6ca2772b3c1559630dfd71e9c519e3d6149c
+            checksum: sha256:6544eb55b3e916affeea0a46fe785329c36de1ba1bdb51ca5239d3567101876f
         
         - name: Extract terraform
           unarchive:
@@ -247,7 +252,7 @@
         
         - name: Download terraform-lxd plugin
           get_url:
-            url: https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.1.3/terraform-provider-lxd_v1.1.3_linux_amd64.zip
+            url: https://github.com/sl1pm4t/terraform-provider-lxd/releases/download/v1.2.0/terraform-provider-lxd_v1.2.0_linux_amd64.zip
             dest: /tmp/terraform_lxd.zip
         
         - name: Extract terraform-lxd plugin
@@ -259,7 +264,7 @@
 
         - name: Download terraform-inventory plugin
           get_url:
-            url: https://github.com/adammck/terraform-inventory/releases/download/v0.8/terraform-inventory_v0.8_linux_amd64.zip
+            url: https://github.com/adammck/terraform-inventory/releases/download/v0.9/terraform-inventory_0.9_linux_amd64.zip
             dest: /tmp/terraform-inventory.zip
         
         - name: Extract terraform-inventory plugin
