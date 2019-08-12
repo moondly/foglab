@@ -1,7 +1,7 @@
-# Foglab is...
+## Foglab is...
 Foglab uses a combination of technologies like LXD, Terraform and Ansible to provide a local "cloud" lab ("fog" = low cloud). You can use Foglab to create multiple machines (LXD + Terraform) as well as automating the provisioning of those machines (Ansible).
 
-## Bringing it up
+## Using the vagrant box
 1. Install `vagrant` and `virtualbox`
 1. Create a `Vagrantfile` with the content below:
 
@@ -55,7 +55,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     ```
     vagrant ssh-config | grep IdentityFile 
     
-    ssh -i <IdentityFile> root@<ip>
+    ssh root@<ip> -i <IdentityFile>
     ```
   
 1. Destroy it
@@ -63,7 +63,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     terraform destroy
     ```
 
-### To pause time (and resume it)
+### To pause/resume foglab
 ```
 vagrant suspend
 vagrant up
@@ -74,10 +74,8 @@ vagrant up
 vagrant destroy
 ```
 
-## Details
-TODO
-
-## Building a vagrant basebox
+# Developers
+## Building a local vagrant basebox
 To build a vagrant basebox do:
 1. Make sure you have VirtualBox, Vagrant and Packer installed
 1. Clone the git repo locally
@@ -94,7 +92,7 @@ vagrant box add myimage build/package.box
 
 After that, you can use Vagrant normally and reference `myimage` as the source.
 
-# No man is an island...
+## No man is an island...
 This would not be possible without the great work and nice ideas from:
 
 - Terraform (https://www.terraform.io/)
