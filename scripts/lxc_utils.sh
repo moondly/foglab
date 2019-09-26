@@ -30,6 +30,7 @@ EOF
 prepareUbuntu () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
+  apt-get update
   apt-get install python-minimal -y
 EOF
 

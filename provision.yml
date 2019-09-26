@@ -57,7 +57,7 @@
             path: /storage
             owner: root
             group: root
-            mode: 01777
+            mode: 0777
             state: directory
 
         - name: Mount storage and write entry in fstab
@@ -223,6 +223,9 @@
                   mem:
                     type: unix-char
                     path: /dev/mem
+                  kmsg:
+                    type: unix-char
+                    path: /dev/kmsg
                 
               cluster: null
               EOF
@@ -281,7 +284,7 @@
             path: "{{ homedir }}/localActions"
             owner: root
             group: root
-            mode: 01755
+            mode: 0755
             state: directory
         - name: Copy the files
           copy:
@@ -298,7 +301,7 @@
             path: "{{ homedir }}/examples"
             owner: root
             group: root
-            mode: 01755
+            mode: 0755
             state: directory
         - name: Copy the files
           copy:
@@ -315,7 +318,7 @@
             path: "{{ homedir }}/scripts"
             owner: root
             group: root
-            mode: 01755
+            mode: 0755
             state: directory
         - name: copy the files
           copy:
@@ -348,7 +351,7 @@
         create: yes
         owner: root
         group: root
-        mode: 644
+        mode: 0644
       loop:
         - { name: "FOGLAB_HOME", value: "{{ homedir}}" }
         - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }
