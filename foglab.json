@@ -3,8 +3,9 @@
     {
       "communicator": "ssh",
       "source_path": "bento/ubuntu-18.04",
-      "box_version": "201812.27.0",
-      "add_force": true,
+      "box_version": "201906.18.0",
+      "add_force": false,
+      "skip_add": true,
       "provider": "virtualbox",
       "output_dir" : "build",
       "type": "vagrant",
