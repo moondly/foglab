@@ -1,0 +1,42 @@
+provider "lxd" {
+  generate_client_certificates = true
+  accept_remote_certificate    = true
+}
+
+{% for i in range(1,n+1) %}
+
+resource "lxd_container" "{{lab_name}}{{ '%02d' % i }}" {
+  name      = "{{lab_name}}{{ '%02d' % i }}"
+  image     = "{{ image }}"
+  ephemeral = false
+  profiles  = ["default"]
+  limits = {
+    cpu    = "{{ cpu }}"
+    memory = "{{ mem }}MB"
+  }
+
+  config = {
+    "user.access_interface" = "eth0"
+  }
+
+  {% if ip >= 0 %}
+  device {
+    name = "eth0"
+    type = "nic"
+    properties = {
+      nictype      = "bridged"
+      parent       = "lxdbr0"
+      "ipv4.address" = "{{ base_segment }}.{{ ip + i - 1 }}"
+    }
+  }
+  {% endif %}
+
+  provisioner "local-exec" {
+    {% if type == 'ubuntu' %}
+    command = ". /opt/foglab/scripts/lxc_utils.sh && prepareUbuntu ${lxd_container.{{lab_name}}{{ '%02d' % i }}.name}"
+    {% elif type == 'centos' %}
+    command = ". /opt/foglab/scripts/lxc_utils.sh && prepareCentOs ${lxd_container.{{lab_name}}{{ '%02d' % i }}.name}"
+    {% endif %}
+  }
+}
+{% endfor %}

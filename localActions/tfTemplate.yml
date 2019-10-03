@@ -1,0 +1,29 @@
+- hosts: localhost
+  gather_facts: no
+  vars:
+    n: 2
+    dir: "./"
+    lab_name: "mylab"
+    config_file: "lab.tf"
+    base_segment: "{{ lookup('env','FOGLAB_BASE_IP_SEGMENT') }}"
+    image: "ubuntu:18.04"
+    type: ubuntu
+    ip: -1
+    cpu: 1
+    mem: 1024
+    
+  tasks:
+    - name: create template
+      block:
+        - name: config eth1
+          template:
+            src: ./tfTemplate.j2
+            dest: "{{ dir }}/{{config_file}}"
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+        
+      tags:
+        - "create"
+    
+    
