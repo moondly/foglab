@@ -16,3 +16,15 @@
     
     - name: set dhcp range
       command: "lxc network set lxdbr0 ipv4.dhcp.ranges '{{ base_segment }}.101-{{ base_segment }}.254'"
+
+    - name: Register new base segment
+      lineinfile:
+        path: /etc/profile.d/foglab.sh
+        regexp: '{{ item.name }}'
+        line: "export {{ item.name }}={{ item.value }}"
+        create: yes
+        owner: root
+        group: root
+        mode: 0644
+      loop:
+        - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }

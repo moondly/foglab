@@ -44,7 +44,7 @@ addSSHKey ${name} ${sshPubKeyFile}
 prepareCentOs () {
   name=${1:-"noname"}
   lxc exec $name -- bash  <<EOF
-  yum install -y openssh-server.x86_64 ntp
+  yum install -y openssh-server.x86_64
   systemctl start sshd
   systemctl enable sshd
 EOF

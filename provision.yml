@@ -330,7 +330,7 @@
         - name: config foglab symbolic link
           file:
             dest: /usr/local/bin/foglab
-            src: "{{ homedir }}/scripts/foglab.sh"
+            src: "{{ homedir }}/scripts/foglab.py"
             state: link
 
     - name: Cleanup
@@ -356,6 +356,7 @@
         - { name: "FOGLAB_HOME", value: "{{ homedir}}" }
         - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }
         - { name: "FOGLAB_BUILD_DATE", value: "{{ ansible_facts['date_time']['iso8601'] }}" }
+        - { name: "ANSIBLE_LOCALHOST_WARNING", value: "False"}
         
         
 
