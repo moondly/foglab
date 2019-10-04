@@ -60,7 +60,7 @@ def lab(args):
     subprocess.call(["lxc", "list", "%s[0-9]+" % labName])
 
   if args.destroy:
-    subprocess.call(["terraform", "destroy"])
+    subprocess.call(["terraform", "destroy", "-auto-approve"])
     for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup']:
       if os.path.isfile(f):
         os.remove(f)

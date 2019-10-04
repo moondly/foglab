@@ -23,7 +23,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
 
       # Will configure the eth1 interface, activate the system swap and configure the base_segment
       config.vm.provision "shell",
-        inline: "foglab eth1 on && foglab swap on && foglab baseip #{base_segment}"
+        inline: "fogctl eth1 on && fogctl swap on && fogctl baseip #{base_segment}"
 
     end
     ```
@@ -69,20 +69,20 @@ vagrant ssh
     ```
 1. Create the lab config folder and apply it
     ```
-    foglab lab -n 2 -a
+    fogctl lab -n 2 -a
     
     # >> Check the changes and type "yes" when requested
     
     Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
     ```
-    This will create a file called `lab.tf` used by terraform to deploy the machines. Type `foglab lab -h` to check all options. 
+    This will create a file called `lab.tf` used by terraform to deploy the machines. Type `fogctl lab -h` to check all options. 
     
     NOTE: The machine names are defined using this pattern: `<labname>[01-99]`. Ex: mylab01, mylab02, ...
 1. List the current machine status:
     ```
-    foglab lab -l
+    fogctl lab -l
     ```
-You can manually edit the `lab.tf` file and apply using `foglab lab -a`
+You can manually edit the `lab.tf` file and apply using `fogctl lab -a`
 #### Change the number of machines but do not apply automatically
 1. Make sure you are inside your lab:
     ```
@@ -90,11 +90,11 @@ You can manually edit the `lab.tf` file and apply using `foglab lab -a`
     ```
 1. Change the config but do not apply. Use -f to force the change (lab.tf already exists at this point):
     ```
-    foglab lab -n 3 -f
+    fogctl lab -n 3 -f
     ```
 1. When you are ready, apply the change:
     ```
-    foglab lab -a
+    fogctl lab -a
 
     # >> Check the changes and type "yes" when requested
 
@@ -108,7 +108,7 @@ You can manually edit the `lab.tf` file and apply using `foglab lab -a`
     ```
 1. Destroy the lab:
     ```
-    foglab lab --destroy
+    fogctl lab --destroy
 
     # >> Check the changes and type "yes" when requested
     ```
@@ -117,7 +117,7 @@ You can manually edit the `lab.tf` file and apply using `foglab lab -a`
 
 1. Get the IPs for your machines
     ```
-    foglab lab -l
+    fogctl lab -l
     ```
 
 1. From you local command line (in the same folder as `Vagrantfile`):

@@ -329,8 +329,8 @@
             mode: 0655
         - name: config foglab symbolic link
           file:
-            dest: /usr/local/bin/foglab
-            src: "{{ homedir }}/scripts/foglab.py"
+            dest: /usr/local/bin/fogctl
+            src: "{{ homedir }}/scripts/fogctl.py"
             state: link
 
     - name: Cleanup

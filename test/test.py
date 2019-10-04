@@ -17,30 +17,30 @@ class TestStringMethods(unittest.TestCase):
         return resp
 
     def test_baseip_set(self):
-        self.assertEqual(self.rsr("foglab baseip 192.168.11"), 0)
+        self.assertEqual(self.rsr("fogctl baseip 192.168.11"), 0)
         self.assertEqual(self.rso("ip addr show dev lxdbr0 | grep 192.168.11.100 | wc -l"), '1')
         self.assertEqual(self.rso("grep FOGLAB_BASE_IP_SEGMENT /etc/profile.d/foglab.sh | wc -l"), '1')
         self.assertEqual(self.rso("grep FOGLAB_BASE_IP_SEGMENT /etc/profile.d/foglab.sh | grep 192.168.11 | wc -l"), '1')
         # unset
-        self.assertEqual(self.rsr("foglab baseip 192.168.99"), 0)
+        self.assertEqual(self.rsr("fogctl baseip 192.168.99"), 0)
         self.assertEqual(self.rso("ip addr show dev lxdbr0 | grep 192.168.99.100 | wc -l"), '1')
         self.assertEqual(self.rso("grep FOGLAB_BASE_IP_SEGMENT /etc/profile.d/foglab.sh | wc -l"), '1')
         self.assertEqual(self.rso("grep FOGLAB_BASE_IP_SEGMENT /etc/profile.d/foglab.sh | grep 192.168.99 | wc -l"), '1')
 
     def test_eth1_on(self):
-        self.assertEqual(self.rsr("foglab eth1 on"), 0)
+        self.assertEqual(self.rsr("fogctl eth1 on"), 0)
         self.assertEqual(self.rso("ip link show dev eth1 | grep UP | wc -l"), '1')
 
     def test_eth1_off(self):
-        self.assertEqual(self.rsr("foglab eth1 off"), 0)
+        self.assertEqual(self.rsr("fogctl eth1 off"), 0)
         self.assertEqual(self.rso("ip link show dev eth1 | grep UP | wc -l"), '0')
 
     def test_swap_on(self):
-        self.assertEqual(self.rsr("foglab swap on"), 0)
+        self.assertEqual(self.rsr("fogctl swap on"), 0)
         self.assertEqual(self.rso("cat /proc/swaps | wc -l"), '2')
 
     def test_swap_off(self):
-        self.assertEqual(self.rsr("foglab swap off"), 0)
+        self.assertEqual(self.rsr("fogctl swap off"), 0)
         self.assertEqual(self.rso("cat /proc/swaps | wc -l"), '1')
     
     # TODO: Add tests for lab
