@@ -69,20 +69,20 @@ vagrant ssh
     ```
 1. Create the lab config folder and apply it
     ```
-    fogctl lab -n 2 -a
+    fogctl vm -n 2 -a
     
     # >> Check the changes and type "yes" when requested
     
     Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
     ```
-    This will create a file called `lab.tf` used by terraform to deploy the machines. Type `fogctl lab -h` to check all options. 
+    This will create a file called `lab.tf` used by terraform to deploy the machines. Type `fogctl vm -h` to check all options. 
     
     NOTE: The machine names are defined using this pattern: `<labname>[01-99]`. Ex: mylab01, mylab02, ...
 1. List the current machine status:
     ```
-    fogctl lab -l
+    fogctl vm -l
     ```
-You can manually edit the `lab.tf` file and apply using `fogctl lab -a`
+You can manually edit the `lab.tf` file and apply using `fogctl vm -a`
 #### Change the number of machines but do not apply automatically
 1. Make sure you are inside your lab:
     ```
@@ -90,11 +90,11 @@ You can manually edit the `lab.tf` file and apply using `fogctl lab -a`
     ```
 1. Change the config but do not apply. Use -f to force the change (lab.tf already exists at this point):
     ```
-    fogctl lab -n 3 -f
+    fogctl vm -n 3 -f
     ```
 1. When you are ready, apply the change:
     ```
-    fogctl lab -a
+    fogctl vm -a
 
     # >> Check the changes and type "yes" when requested
 
@@ -108,7 +108,7 @@ You can manually edit the `lab.tf` file and apply using `fogctl lab -a`
     ```
 1. Destroy the lab:
     ```
-    fogctl lab --destroy
+    fogctl vm --destroy
 
     # >> Check the changes and type "yes" when requested
     ```
@@ -117,7 +117,7 @@ You can manually edit the `lab.tf` file and apply using `fogctl lab -a`
 
 1. Get the IPs for your machines
     ```
-    fogctl lab -l
+    fogctl vm -l
     ```
 
 1. From you local command line (in the same folder as `Vagrantfile`):

@@ -1,7 +1,8 @@
 import unittest
 import subprocess
 from subprocess import Popen, PIPE
-from shlex import split
+import os
+import shutil
 
 class TestStringMethods(unittest.TestCase):
 
@@ -9,7 +10,7 @@ class TestStringMethods(unittest.TestCase):
     def rso(self, cmd):
         process = Popen(cmd, stdout=PIPE, shell=True)
         stdout, stderr = process.communicate()
-        return stdout.strip()
+        return stdout.strip().decode('UTF-8')
 
     # Run command using shell and return response code
     def rsr(self, cmd):
@@ -43,7 +44,43 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(self.rsr("fogctl swap off"), 0)
         self.assertEqual(self.rso("cat /proc/swaps | wc -l"), '1')
     
-    # TODO: Add tests for lab
+    def test_vm_and_snaphot(self):
+        directory = "/tmp/testVmAndSnap"
+        labName = os.path.basename(directory)
+        try:
+            os.makedirs(directory)
+        except OSError:
+            print ("Creation of the directory %s failed" % directory)
+            
+
+        # create
+        self.assertEqual(self.rsr("cd %s && fogctl vm -n 2 -a" % directory), 0)
+        self.assertEqual(self.rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % labName), '2')
+        
+        # snapshot create
+        self.assertEqual(self.rsr("cd %s && fogctl snapshot create --label snap1" % directory), 0)
+        self.assertEqual(self.rso("cd %s && fogctl snapshot list | grep snap1 | wc -l" % directory), '2')
+        
+        # snapshot restore
+        self.assertEqual(self.rsr("cd %s && fogctl snapshot restore --label snap1" % directory), 0)
+        
+        # snapshot delete
+        self.assertEqual(self.rsr("cd %s && fogctl snapshot delete --label snap1" % directory), 0)
+        self.assertEqual(self.rso("cd %s && fogctl snapshot list | grep snap1 | wc -l" % directory), '0')
+        # modify
+        self.assertEqual(self.rsr("cd %s && fogctl vm -n 3 -a -f" % directory), 0)
+        self.assertEqual(self.rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % labName), '3')
+        
+        # destroy
+        self.assertEqual(self.rsr("cd %s && fogctl vm --destroy" % directory), 0)
+        self.assertEqual(self.rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % labName), '0')
+        self.assertFalse(os.listdir('%s' % directory))
+
+        try:
+            self.rsr("cd %s && terraform destroy -auto-approve" % directory)
+            shutil.rmtree(directory)
+        except OSError as e:
+            True
 
 if __name__ == '__main__':
     unittest.main()
