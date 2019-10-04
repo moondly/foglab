@@ -2,8 +2,9 @@ box-name := bento/ubuntu-18.04
 box-version := 201906.18.0
 devbox-name := devfoglab
 devbox-build := foglab-build
+hasBaseBox := $(shell vagrant box list | grep "$(box-name)" | grep $(box-version))
 
-create : foglab.json provision.yml
+build : foglab.json provision.yml
 ifeq ($(strip $(hasBaseBox)),)
 				vagrant box add $(box-name) --provider virtualbox --box-version $(box-version)
 endif
@@ -18,7 +19,6 @@ test :
 
 .PHONY: clean
 clean : 
-				hasBaseBox := $(shell vagrant box list | grep "$(box-name)" | grep $(box-version))
 				hasDevBox := $(shell vagrant box list | grep $(devbox-name))
 				hasBuildVmRunning := $(shell VBoxManage list runningvms | grep "$(devbox-build)")
 				hasBuildVm := $(shell VBoxManage list vms | grep "$(devbox-build)")

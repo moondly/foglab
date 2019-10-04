@@ -34,9 +34,10 @@ def lab(args):
   currdir = os.getcwd()
   configFile = "lab.tf"
   labName = os.path.basename(currdir)
+  labConfigFile = os.path.join(currdir,configFile)
 
   if not args.n is None:
-    if not args.f and os.path.isfile(os.path.join(currdir,configFile)):
+    if not args.f and os.path.isfile(labConfigFile):
       print("Config file %r exists. Use -f to force overwrite" % configFile)
       raise SystemExit
 
@@ -60,6 +61,9 @@ def lab(args):
 
   if args.destroy:
     subprocess.call(["terraform", "destroy"])
+    for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup']:
+      if os.path.isfile(f):
+        os.remove(f)
 
 # Argument parser
 parser = argparse.ArgumentParser(prog='foglab')
