@@ -1,5 +1,5 @@
 # Make sure this value do not overlap with any local network. Change it if necessary.
-base_segment = '192.168.99'
+base_segment = '192.168.11'
 
 Vagrant.configure("2") do |config|
   config.vm.box = "devfoglab"
@@ -14,6 +14,9 @@ Vagrant.configure("2") do |config|
     v.memory = 1024
     v.cpus = 2
   end
+
+  config.vm.provision "shell", run: "always",
+    inline: "fogctl eth1 on && fogctl swap on && fogctl baseip #{base_segment}"
 
   config.vm.provision "test", type: "shell", run: "never" do |s|
     s.inline = "echo Running tests... && python /opt/foglab/test/test.py"
