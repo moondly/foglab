@@ -41,7 +41,7 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     ``` 
 You are now ready to start creating your own labs in foglab!
 
-### Commands to manage `foglab`
+### Managing `foglab`
 #### To pause/resume foglab
 ```
 vagrant suspend
@@ -53,13 +53,20 @@ vagrant up
 vagrant destroy
 ```
 
-### Commands to manage `labs` (while inside foglab)
+### Managing `labs`
 #### Make sure you are inside foglab. If not:
 ```
 vagrant ssh
 ```
+#### Add your ssh public key
+```
+fogctl sshkey
+
+Please enter the ssh public key to use: <type you ssh public key>
+```
+NOTE: if you do not set a public key, the public key from vagrant will be used. Check `fogctl sshkey -h` for more options.
 #### Deploy a lab with 2 machines
-1. Create a folder to contain you lab
+1. Create a folder to contain your lab
     ```
     mkdir mylab
     ```
@@ -67,7 +74,7 @@ vagrant ssh
     ```
     cd mylab
     ```
-1. Create the lab config folder and apply it
+1. Create the vms
     ```
     fogctl vm -n 2 -a
     
@@ -77,13 +84,13 @@ vagrant ssh
     ```
     This will create a file called `lab.tf` used by terraform to deploy the machines. Type `fogctl vm -h` to check all options. 
     
-    NOTE: The machine names are defined using this pattern: `<labname>[01-99]`. Ex: mylab01, mylab02, ...
+    NOTE: The machine names are defined after the folder name like: `<labname>[01-99]`. Ex: mylab01, mylab02, ...
 1. List the current machine status:
     ```
     fogctl vm -l
     ```
 You can manually edit the `lab.tf` file and apply using `fogctl vm -a`
-#### Change the number of machines but do not apply automatically
+#### Change the number of vms but do not apply automatically
 1. Make sure you are inside your lab:
     ```
     cd mylab
@@ -92,7 +99,7 @@ You can manually edit the `lab.tf` file and apply using `fogctl vm -a`
     ```
     fogctl vm -n 3 -f
     ```
-1. When you are ready, apply the change:
+1. When you are ready, apply the changes:
     ```
     fogctl vm -a
 
@@ -101,6 +108,36 @@ You can manually edit the `lab.tf` file and apply using `fogctl vm -a`
     Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
     ```
 
+#### Snapshots
+It is always a good itde to save snapshots from your lab so you can go back in time if something goes wrong.
+1. Make sure you are inside your lab:
+    ```
+    cd mylab
+    ```
+* To create a snapshot:
+    ```
+    fogctl snapshot create --label snap1
+
+    Snapshot for vm 'mylab01' created with label 'snap1' at '2019-10-05T21:44:53Z'
+    Snapshot for vm 'mylab02' created with label 'snap1' at '2019-10-05T21:44:54Z'
+    ```
+* To list a snapshot:
+    ```
+    fogctl snapshot list
+
+    Snapshots for 'mylab01':
+      'snap1' : '2019-10-05T21:44:53Z'
+    Snapshots for 'mylab02':
+      'snap1' : '2019-10-05T21:44:54Z'
+    ```
+* To retsore a snapshot:
+    ```
+    fogctl snapshot restore --label snap1
+
+    Vm 'mylab01' restored to snapshot with label 'snap1'
+    Vm 'mylab02' restored to snapshot with label 'snap1'
+    ```
+Check `fogctl snapshot -h` for more options.
 #### Destroy the lab
 1. Make sure you are inside your lab:
     ```
@@ -113,20 +150,22 @@ You can manually edit the `lab.tf` file and apply using `fogctl vm -a`
     # >> Check the changes and type "yes" when requested
     ```
 
-#### Connect from you local command time to the machines
+#### Connect from you local terminal to the vms
 
 1. Get the IPs for your machines
     ```
     fogctl vm -l
     ```
-
-1. From you local command line (in the same folder as `Vagrantfile`):
+1. If you used your own ssh public key, from your `local terminal` type:
+    ```
+    ssh root@<ip> 
+    ```
+1. If not, use the vagrant ssh key:
     ```
     vagrant ssh-config | grep IdentityFile 
     
     ssh root@<ip> -i <IdentityFile>
     ```
-    TIP: It is always a good idea to install your own public key in the machines so you don't have to use `-i` every time. 
 
 
 # For Developers
@@ -154,5 +193,5 @@ The following directories will be mapped during development:
 * folder `examples/` mapped to: `/opt/foglab/examples`
 * folder `test/` mapped to: `/opt/foglab/test`
 
-During image build, the content of the directories are copied to the respective folders inside the image.
+During the image build, the content of the directories are copied to the respective folders inside the image.
 
