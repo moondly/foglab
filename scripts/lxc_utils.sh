@@ -1,23 +1,22 @@
 #!/bin/bash
 
-sshPubKeyFile="/home/vagrant/.ssh/foglab.pub"
-
-# use the vagrant public key for all LXC images
-if [ ! -f ${sshPubKeyFile} ]; then
-    grep vagrant /home/vagrant/.ssh/authorized_keys | tee ${sshPubKeyFile}
-fi
-
-chmod 644 ${sshPubKeyFile}
-
 # Add SSH key from local file to container root user
 # Parameters:
 #   $1 => container name
-#   $2 => fullpath to local file with public SSH key
 addSSHKey () {
   name=${1:-"noname"}
-  file=${2:-"nokey"}
+
+  sshPubKeyFile="/home/vagrant/.ssh/foglab.pub"
+
+  # use the vagrant public key for all LXC images
+  if [ ! -f ${sshPubKeyFile} ]; then
+    grep vagrant /home/vagrant/.ssh/authorized_keys | tee ${sshPubKeyFile}
+  fi
+
+  chmod 644 ${sshPubKeyFile}
+
   dest=/root/id_rsa.pub
-  lxc file push $file $name/$dest
+  lxc file push $sshPubKeyFile $name/$dest
   lxc exec $name -- bash  <<EOF
   cd ~
   mkdir -p .ssh
@@ -37,7 +36,7 @@ prepareUbuntu () {
   apt-get install python-minimal -y
 EOF
 
-addSSHKey ${name} ${sshPubKeyFile}
+addSSHKey ${name} 
 
 }
 
@@ -52,15 +51,6 @@ prepareCentOs () {
   systemctl enable sshd
 EOF
 
-addSSHKey ${name} ${sshPubKeyFile}
+addSSHKey ${name}
 
-}
-
-# Get IP for LXD container
-# Parameters:
-#   $1 => container name
-getIp () {
-  name=${1:-"noname"}
-  ip=$(lxc list $name -c4 --format csv | grep eth0 |  cut -d' ' -f1 | sed -r 's/\"//g')
-  echo "$ip"
 }
