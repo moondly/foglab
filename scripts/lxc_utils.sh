@@ -1,9 +1,12 @@
 #!/bin/bash
 
-sshPubKeyFile="/home/vagrant/.ssh/id_rsa.pub"
+sshPubKeyFile="/home/vagrant/.ssh/foglab.pub"
 
 # use the vagrant public key for all LXC images
-grep vagrant /home/vagrant/.ssh/authorized_keys | tee ${sshPubKeyFile}
+if [ ! -f ${sshPubKeyFile} ]; then
+    grep vagrant /home/vagrant/.ssh/authorized_keys | tee ${sshPubKeyFile}
+fi
+
 chmod 644 ${sshPubKeyFile}
 
 # Add SSH key from local file to container root user
@@ -19,7 +22,7 @@ addSSHKey () {
   cd ~
   mkdir -p .ssh
   chmod 700 .ssh/
-  cat $dest > .ssh/authorized_keys
+  cat $dest >> .ssh/authorized_keys
   chmod 600 .ssh/authorized_keys
 EOF
 }

@@ -58,21 +58,30 @@ def vm(args):
 
   if args.a:
     subprocess.call(["terraform", "init"])
-    subprocess.call(["terraform", "apply", "-auto-approve"])
+    if(args.approve):
+      subprocess.call(["terraform", "apply", "-auto-approve"])
+    else:
+      subprocess.call(["terraform", "apply"])
     subprocess.call(["lxc", "list", "%s[0-9]+" % labName])
   
   if args.l:
     subprocess.call(["lxc", "list", "%s[0-9]+" % labName])
 
   if args.destroy:
-    subprocess.call(["terraform", "destroy", "-auto-approve"])
-    for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup']:
-      if os.path.isfile(f):
-        os.remove(f)
-    try:
-      shutil.rmtree('.terraform')
-    except OSError as e:
-      True
+    resp = 1
+    if args.approve :
+      resp = subprocess.call(["terraform", "destroy", "-auto-approve"])
+    else:
+      resp = subprocess.call(["terraform", "destroy"])
+
+    if resp == 0:
+      for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup']:
+        if os.path.isfile(f):
+          os.remove(f)
+      try:
+        shutil.rmtree('.terraform')
+      except OSError as e:
+        True
     
 
 # Run command using shell and return stdout
@@ -80,6 +89,11 @@ def rso(cmd):
   process = Popen(cmd, stdout=PIPE, shell=True)
   stdout, stderr = process.communicate()
   return stdout.strip().decode('UTF-8')
+
+# Run command using shell and return response code
+def rsr(cmd):
+    resp = subprocess.call(cmd, shell=True)
+    return resp
 
 def lxcq(op, path):
   resp = json.loads(rso("lxc query -X %s %s" % (op.upper(), path)))
@@ -117,6 +131,35 @@ def snap(args):
         sinfo = lxcq("GET","%s" % s)
         print("  %r : %r" % (sinfo['name'], sinfo['created_at']))
 
+def sshkey(args):
+  currdir = os.getcwd()
+  labName = os.path.basename(currdir)
+  key = args.key if args.key is not None else input("Please enter the ssh public key to use:")
+  vms = [];
+
+  if key == "":
+    print("No key entered!")
+    raise SystemExit
+
+  # this file is used latter on by terraform to inject the keys
+  sshPubKeyFile = "/home/vagrant/.ssh/foglab.pub"
+  f = open(sshPubKeyFile,"w+")
+  f.write("%s\n" % key)
+  f.close()
+  
+  if args.all:
+    vms = rso("lxc list -cn --format csv").split()
+  elif args.lab:
+    vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
+    
+  for vm in vms:
+    resp = rsr(". /opt/foglab/scripts/lxc_utils.sh && addSSHKey %s %s" % (vm, sshPubKeyFile))
+    if resp == 0:
+      print("Key added to %s" % vm);
+    else:
+      print("Error adding key to %s" % vm);
+  
+
 # Argument parser
 parser = argparse.ArgumentParser(prog='foglab')
 subparsers = parser.add_subparsers(title='subcommands')
@@ -143,6 +186,7 @@ parser_vm.add_argument('--destroy', action='store_true', default=False, help='De
 parser_vm.add_argument('--cpu', type=int, default=1, help='Number of cpus on each machine. Default: 1')
 parser_vm.add_argument('--mem', type=int, default=256, help='Memory (MB) on each machine. Default: 256.')
 parser_vm.add_argument('--ip', type=int, help='Use fixed IP for the machines starting with the value defined and incremented by 1 for each machine. Ex: 192.168.55.x, 192.168.55.(x+1), ...')
+parser_vm.add_argument('--approve', action='store_true', default=False, help='Do not show any prompt asking for approval and auto approve.')
 parser_vm.set_defaults(func=vm)
 
 parser_snap = subparsers.add_parser('snapshot')
@@ -150,6 +194,11 @@ parser_snap.add_argument('action', choices=['create', 'restore', 'delete', 'list
 parser_snap.add_argument('--label', help='The snapshot label. If not passed, a random string will be used')
 parser_snap.set_defaults(func=snap)
 
+parser_ssh = subparsers.add_parser('sshkey')
+parser_ssh.add_argument('--key', help='Configure the ssh public key to use when creating new machines')
+parser_ssh.add_argument('--lab', action='store_true', default=False, help='Will distribute the key to running vms in the current lab. Default: False')
+parser_ssh.add_argument('--all', action='store_true', default=False, help='Will distribute the key to all running vms in foglab. Default: False')
+parser_ssh.set_defaults(func=sshkey)
 
 args = parser.parse_args()
 if not hasattr(args, 'func'):
