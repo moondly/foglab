@@ -19,12 +19,34 @@ def typeIpv4(ip):
     raise argparse.ArgumentTypeError(msg)
   return ip
 
+# Run command using shell and return stdout
+def rso(cmd):
+  process = Popen(cmd, stdout=PIPE, shell=True)
+  stdout, stderr = process.communicate()
+  return stdout.strip().decode('UTF-8')
+
+# Run command using shell and return response code
+def rsr(cmd):
+    resp = subprocess.call(cmd, shell=True)
+    return resp
+
+def lxcq(op, path):
+  resp = json.loads(rso("lxc query -X %s %s" % (op.upper(), path)))
+  return resp
+
+def randomString(stringLength=10):
+    """Generate a random string of fixed length """
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(stringLength))
+
 def action(action, tags, extra=None):
-  print('action: %s, tag: %s, extra: %s' % (action, tags, extra))
+  print('action: %r, tag: %r, extra: %r' % (action, tags, extra))
   playbook = LOCALACTIONSDIR + "/" + action + ".yml"
   
-  extra = extra or ""
-  subprocess.call(["ansible-playbook", playbook, "--tags", tags, "--extra-vars", extra])
+  if extra is None:
+    rsr("ansible-playbook %r --tags %r" % (playbook, tags))
+  else:
+    rsr("ansible-playbook %r --tags %r --extra-vars %r" % (playbook, tags, extra))
 
 def swap(args):
   action("swap", args.state)
@@ -33,7 +55,7 @@ def eth1(args):
   action("eth1", args.state)
 
 def baseip(args):
-  action("lxdip", "all", "base_segment="+args.baseip)
+  action("lxdip", "all", "base_segment=%s" % args.baseip)
 
 def vm(args):
   currdir = os.getcwd()
@@ -57,22 +79,22 @@ def vm(args):
     action("tfTemplate", "create", "{'n': %d,'lab_name': %r, 'dir': %r, 'image': %r, 'type': %r, 'ip': %d, 'cpu' : %d, 'mem': %d}" % (args.n, labName, currdir, image, itype, ip, cpu, mem))
 
   if args.a:
-    subprocess.call(["terraform", "init"])
+    rsr("terraform init")
     if(args.approve):
-      subprocess.call(["terraform", "apply", "-auto-approve"])
+      rsr("terraform apply -auto-approve")
     else:
-      subprocess.call(["terraform", "apply"])
-    subprocess.call(["lxc", "list", "%s[0-9]+" % labName])
+      rsr("terraform apply")
+    rsr("lxc list %s[0-9]+" % labName)
   
   if args.l:
-    subprocess.call(["lxc", "list", "%s[0-9]+" % labName])
+    rsr("lxc list %s[0-9]+" % labName)
 
   if args.destroy:
     resp = 1
     if args.approve :
-      resp = subprocess.call(["terraform", "destroy", "-auto-approve"])
+      resp = rsr("terraform destroy -auto-approve")
     else:
-      resp = subprocess.call(["terraform", "destroy"])
+      resp = rsr("terraform destroy")
 
     if resp == 0:
       for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup']:
@@ -81,28 +103,8 @@ def vm(args):
       try:
         shutil.rmtree('.terraform')
       except OSError as e:
-        True
+        pass
     
-
-# Run command using shell and return stdout
-def rso(cmd):
-  process = Popen(cmd, stdout=PIPE, shell=True)
-  stdout, stderr = process.communicate()
-  return stdout.strip().decode('UTF-8')
-
-# Run command using shell and return response code
-def rsr(cmd):
-    resp = subprocess.call(cmd, shell=True)
-    return resp
-
-def lxcq(op, path):
-  resp = json.loads(rso("lxc query -X %s %s" % (op.upper(), path)))
-  return resp
-
-def randomString(stringLength=10):
-    """Generate a random string of fixed length """
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(stringLength))
 
 def snap(args):
   currdir = os.getcwd()
@@ -112,16 +114,16 @@ def snap(args):
   vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
   for vm in vms:
     if action == "create":
-      resp = subprocess.call(["lxc", "snapshot", vm, label])
+      resp = rsr("lxc snapshot %s %s" % (vm, label))
       if resp == 0:
         info = lxcq("GET","/1.0/containers/%s/snapshots/%s" % (vm, label))
         print("Snapshot for vm %r created with label %r at %r" % (vm, label, info['created_at']))
     elif action == "restore":
-      resp = subprocess.call(["lxc", "restore", vm, label])
+      resp = rsr("lxc restore %s %s" % (vm, label))
       if resp == 0:
         print("Vm %r restored to snapshot with label %r" % (vm, label))
     elif action == "delete":
-      resp = subprocess.call(["lxc", "delete", "%s/%s" % (vm,label)])
+      resp = rsr("lxc delete %s/%s" % (vm,label))
       if resp == 0:
         print("Snapshot for vm %r with label %r deleted" % (vm, label))
     elif action == "list":
