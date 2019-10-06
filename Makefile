@@ -20,6 +20,7 @@ add : ./build/package.box
 
 test : 
 				vagrant up --provision-with test
+				vagrant destroy -f
 
 clean : 
 				rm -rf ./build/*.box
