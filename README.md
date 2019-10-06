@@ -130,7 +130,7 @@ It is always a good itde to save snapshots from your lab so you can go back in t
     Snapshots for 'mylab02':
       'snap1' : '2019-10-05T21:44:54Z'
     ```
-* To retsore a snapshot:
+* To restore a snapshot:
     ```
     fogctl snapshot restore --label snap1
 
