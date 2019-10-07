@@ -6,33 +6,27 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
 
 ## Using foglab
 1. Install `vagrant` and `virtualbox`
-1. Create a `Vagrantfile` with the content below:
+1. Create a `Vagrantfile` like below:
 
     ```
-    # Make sure this value do not overlap with any local network. Change it if necessary.
-    base_segment = '192.168.55'
-
     Vagrant.configure("2") do |config|
-      config.vm.box = "moondly/foglab"
-      config.vm.network "private_network", ip: "#{base_segment}.100", adapter_ip: "#{base_segment}.1", netmask: "255.255.255.0", auto_config: false
-
-      config.vm.provider "virtualbox" do |v|
-        v.memory = 8192
-        v.cpus = 4
-      end
-
-      # Will configure the eth1 interface, activate the system swap and configure the base_segment
-      config.vm.provision "shell",
-        inline: "fogctl eth1 on && fogctl swap on && fogctl baseip #{base_segment}"
-
+        config.vm.box = "moondly/foglab"
+        config.vm.provider "virtualbox" do |v|
+            v.memory = 2048
+            v.cpus = 2
+        end
     end
     ```
 
-    You can adapt the `cpu` and `memory` accordingly. Please adapt the IP `base_segment` if it overlaps with any other local network. If not specified, your machines will receive IPs from the range `<base_segment>.101-254.`
+    You can adapt the `cpu` and `memory` accordingly. If the values are too low you may have performance issues. Recommended values are `4 cpus` and `8192 MB`.
+
+    By default, foglab will use `192.168.55` as the base segment and your lab vms will receive IPs from the range `<foglab_baseip>.101-254`. 
     
-    The `eth1` interface allows you to connect to the LXD hosts from your local machine. 
-    
-    You can use or not `swap` depending on the system memory available. Please notice that some applications may force swap to be disabled (kubernetes for instance).
+    To use another value:
+    ```
+    export FOGLAB_BASEIP=192.168.11
+    ```
+    NOTE: make sure this value does not overlap with any other local network!
 
 1. Start and login:
     ```
