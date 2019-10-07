@@ -1,0 +1,26 @@
+# Make sure this value do not overlap with any local network. Change it if necessary.
+if ENV['FOGLAB_BASEIP']
+  base_segment = ENV['FOGLAB_BASEIP']
+else
+  base_segment = '192.168.55'
+end
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "moondly/foglab"
+  config.vm.network "private_network", ip: "#{base_segment}.100", adapter_ip: "#{base_segment}.1", netmask: "255.255.255.0", auto_config: false
+
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 2048
+    v.cpus = 2
+  end
+
+  # Will configure the eth1 interface, activate the system swap and configure the base_segment
+  config.vm.provision "shell", run: "once" do |a|
+    a.inline = "fogctl eth1 on && fogctl swap on"
+  end
+
+  config.vm.provision "shell", run: "always" do |b|
+    b.inline = "fogctl baseip #{base_segment}"
+  end
+
+end

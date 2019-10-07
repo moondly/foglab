@@ -10,7 +10,8 @@
       "output_dir" : "build",
       "type": "vagrant",
       "template": "vagrantBuild",
-      "teardown_method": "destroy"
+      "teardown_method": "destroy",
+      "output_vagrantfile": "../vagrantFileTemplate"
     }
   ],
   "provisioners":[
