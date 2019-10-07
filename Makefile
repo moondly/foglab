@@ -19,7 +19,7 @@ add : ./build/package.box
 				vagrant box add devfoglab ./build/package.box --force
 
 test : 
-				vagrant up --provision-with test
+				vagrant up --provision-with test --no-color
 				vagrant destroy -f
 
 clean : 
