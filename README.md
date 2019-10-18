@@ -58,7 +58,7 @@ fogctl sshkey
 
 Please enter the ssh public key to use: <type you ssh public key>
 ```
-NOTE: if you do not set a public key, the public key from vagrant will be used. Check `fogctl sshkey -h` for more options.
+
 #### Deploy a lab with 2 machines
 1. Create a folder to contain your lab
     ```
@@ -154,13 +154,19 @@ Check `fogctl snapshot -h` for more options.
     ```
     ssh root@<ip> 
     ```
-1. If not, use the vagrant ssh key:
+1. If not, you can connect from foglab using the `vagrant` user:
     ```
-    vagrant ssh-config | grep IdentityFile 
+    vagrant ssh 
     
-    ssh root@<ip> -i <IdentityFile>
+    ssh root@<ip>
     ```
+#### DNS names
+When a new vm is created, it is registered in foglab dns and can be accessed using `<name>.lab`
+```
+vagrant ssh
 
+ping <name>.lab
+```
 
 # For Developers
 ## Building a local vagrant basebox
