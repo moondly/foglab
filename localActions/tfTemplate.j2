@@ -31,12 +31,5 @@ resource "lxd_container" "{{lab_name}}{{ '%02d' % i }}" {
   }
   {% endif %}
 
-  provisioner "local-exec" {
-    {% if type == 'ubuntu' %}
-    command = ". /opt/foglab/scripts/lxc_utils.sh && prepareUbuntu ${lxd_container.{{lab_name}}{{ '%02d' % i }}.name}"
-    {% elif type == 'centos' %}
-    command = ". /opt/foglab/scripts/lxc_utils.sh && prepareCentOs ${lxd_container.{{lab_name}}{{ '%02d' % i }}.name}"
-    {% endif %}
-  }
 }
 {% endfor %}
