@@ -178,11 +178,12 @@
                   ipv4.nat: "true"
                   ipv4.routing: true
                   ipv6.address: none
-                  dns.domain: foglab
+                  dns.domain: lab
                   dns.mode: managed
                   raw.dnsmasq: |
                     dhcp-option-force=26,1500
-                    server=127.0.0.1
+                    auth-zone=lab
+                    dns-loop-detect
               storage_pools:
               - name: lxd
                 driver: lvm
@@ -327,11 +328,77 @@
             owner: root
             group: root
             mode: 0655
-        - name: config foglab symbolic link
+        - name: config fogctl symbolic link
           file:
             dest: /usr/local/bin/fogctl
             src: "{{ homedir }}/scripts/fogctl.py"
             state: link
+
+    - name: Configure dns
+      block:
+        - name: Dnsmasq config file 
+          lineinfile:
+            path: /etc/dnsmasq.conf
+            line: "{{ item }}"
+            create: yes
+            owner: root
+            group: root
+            mode: 0644
+          loop:
+            - "listen-address=127.0.0.1"
+            - "port=53"
+            - "domain=lab"
+            - "domain-needed"
+            - "bogus-priv"
+            - "strict-order"
+            - "expand-hosts"
+        - name: Dnsmasq lab config file 
+          lineinfile:
+            path: /etc/dnsmasq.d/lab
+            line: "{{ item }}"
+            create: yes
+            owner: root
+            group: root
+            mode: 0644
+          loop:
+            - "server=/lab/{{ base_segment }}.100"
+            - "bind-interfaces"
+            - "except-interface=lxdbr0"
+        - name: Remove resolv symlink
+          file:
+            path: /etc/resolv.conf
+            state: absent
+        - name: New resolv file 
+          lineinfile:
+            path: /etc/resolv.conf
+            line: "{{ item }}"
+            create: yes
+            owner: root
+            group: root
+            mode: 0644
+          loop:
+            - "nameserver 127.0.0.1"
+            - "nameserver 8.8.8.8"
+        - name: Register foglab in dns 
+          lineinfile:
+            path: /etc/hosts
+            line: "{{ item }}"
+            create: yes
+            owner: root
+            group: root
+            mode: 0644
+          loop:
+            - "127.0.0.1 foglab"
+        - name: Disable systemd-resolved
+          service:
+            name: systemd-resolved
+            state: stopped
+            enabled: no
+        - name: Service restart dnsmasq
+          service:
+            name: dnsmasq.service
+            state: restarted
+            enabled: yes
 
     - name: Cleanup
       block:
