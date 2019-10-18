@@ -15,12 +15,8 @@ Vagrant.configure("2") do |config|
   end
 
   # Will configure the eth1 interface, activate the system swap and configure the base_segment
-  config.vm.provision "shell", run: "once" do |a|
-    a.inline = "fogctl eth1 on && fogctl swap on"
-  end
-
-  config.vm.provision "shell", run: "always" do |b|
-    b.inline = "fogctl baseip #{base_segment}"
+  config.vm.provision "shell" do |a|
+    a.inline = "fogctl eth1 on && fogctl baseip #{base_segment}"
   end
 
 end
