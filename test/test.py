@@ -75,6 +75,10 @@ class TestFogCtlVm(unittest.TestCase):
         self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '0')
         self.assertFalse(os.listdir('%s' % self.testDir))
 
+    def test_04_vm_create_centos(self):
+        self.assertEqual(rsr("cd %s && fogctl vm -n 1 -a --approve -i centos/7" % self.testDir), 0)
+        self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '1')
+
 class TestFogCtlSnapshot(unittest.TestCase):
     testDir = "/tmp/testSnap"
     labName = os.path.basename(testDir)

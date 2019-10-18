@@ -16,7 +16,6 @@ LOCALACTIONSDIR=os.path.join(os.sep,"opt","foglab","localActions")
 sshPubKeyFile = os.path.join(os.sep,"home","vagrant",".ssh","custom.pub")
 sshPubKeyFoglabFile = os.path.join(os.sep,"home","vagrant",".ssh","id_rsa.pub")
 
-
 def typeIpv4(ip):
   if not re.search("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", ip):
     msg = "Invalid base ip %r. Ex: 192.168.55" % ip
@@ -61,6 +60,22 @@ def eth1(args):
 def baseip(args):
   action("lxdip", "all", "base_segment=%s" % args.baseip)
 
+def vmProvisioning(vms, itype):
+  commands = []
+
+  if(itype == "centos"):
+    commands = ["yum install -y openssh-server.x86_64",
+              "systemctl start sshd",
+              "systemctl enable sshd"]
+  
+  for vm in vms:
+    for cmd in commands:
+      resp = rsr("lxc exec %r -- bash -c %r" % (vm, cmd))
+      if resp != 0:
+        print("Failed! cmd: %s, resp: %s" % (cmd, resp))
+        break
+
+
 def vm(args):
   currdir = os.getcwd()
   configFile = "lab.tf"
@@ -90,6 +105,8 @@ def vm(args):
       rsr("terraform apply")
     vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
     
+    vmProvisioning(vms, itype)
+
     addSshKeyFromFile(vms, "foglab", sshPubKeyFoglabFile)
     
     if os.path.isfile(sshPubKeyFile):
