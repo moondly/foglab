@@ -19,7 +19,7 @@ class TestFogCtlGeneral(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        rsr("fogctl baseip 192.168.11")
+        rsr("fogctl baseip 192.168.55")
 
     def test_baseip_set(self):
         self.assertEqual(rsr("fogctl baseip 192.168.22"), 0)
@@ -67,7 +67,7 @@ class TestFogCtlVm(unittest.TestCase):
         self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '2')
         
     def test_02_vm_modify(self):
-        self.assertEqual(rsr("cd %s && fogctl vm -n 3 -a -f --approve" % self.testDir), 0)
+        self.assertEqual(rsr("cd %s && fogctl vm -n 3 -a --force --approve" % self.testDir), 0)
         self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '3')
         
     def test_03_vm_destroy(self):
@@ -119,6 +119,8 @@ class TestFogCtlSshKey(unittest.TestCase):
         except OSError:
             print ("Creation of the directory %s failed" % cls.testDir)
     
+        rsr("cd %s && fogctl vm -n 2 -a --approve" % cls.testDir)
+
     @classmethod
     def tearDownClass(cls):
         try:
@@ -127,17 +129,24 @@ class TestFogCtlSshKey(unittest.TestCase):
         except OSError as e:
             pass
 
-    def test_01_add(self):
-        self.assertEqual(rsr("cd %s && fogctl sshkey --key sshkey1" % self.testDir), 0)
-        self.assertEqual(rso("grep sshkey1 /home/vagrant/.ssh/foglab.pub | wc -l"), '1')
+    def test_01_foglab_key_exists(self):
+        self.assertEqual(rso("ls /home/vagrant/.ssh/id_rsa.pub | wc -l"), '1')
 
-    def test_02_create_vm_with_key(self):
-        self.assertEqual(rsr("cd %s && fogctl vm -n 2 -a --approve" % self.testDir), 0)
-        self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '2')
-        self.assertEqual(rso("lxc exec %s grep sshkey1 /root/.ssh/authorized_keys | wc -l" % (self.labName+"01")), '1')
+    def test_02_foglab_key_works(self):
+        ip = rso("lxc list %s -c4 --format csv | cut -d ' ' -f1" % (self.labName+"01"))
+        self.assertEqual(rsr("ssh -o ConnectTimeout=10 root@%s pwd" % (ip)), 0)
 
-    def test_03_add_in_lab(self):
-        self.assertEqual(rsr("cd %s && fogctl sshkey --key sshkey2 --lab" % self.testDir), 0)
+    def test_03_add(self):
+        self.assertEqual(rsr("cd %s && fogctl sshkey --key sshkey1 --force" % self.testDir), 0)
+        self.assertEqual(rso("grep sshkey1 /home/vagrant/.ssh/custom.pub | wc -l"), '1')
+
+    def test_04_create_vm_with_key(self):
+        self.assertEqual(rsr("cd %s && fogctl vm -n 3 -a --approve --force" % self.testDir), 0)
+        self.assertEqual(rso("lxc list %s[0-9]+ -cn --format csv | wc -l" % self.labName), '3')
+        self.assertEqual(rso("lxc exec %s grep sshkey1 /root/.ssh/authorized_keys | wc -l" % (self.labName+"03")), '1')
+
+    def test_05_add_in_lab(self):
+        self.assertEqual(rsr("cd %s && fogctl sshkey --key sshkey2 --lab --force" % self.testDir), 0)
         vms = rso("lxc list -cn --format csv %s[0-9]+" % self.labName).split()
         for vm in vms:
             self.assertEqual(rso("lxc exec %s grep sshkey2 /root/.ssh/authorized_keys | wc -l" % vm), '1')

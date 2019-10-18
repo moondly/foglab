@@ -13,6 +13,10 @@ import string
 
 LOCALACTIONSDIR=os.path.join(os.sep,"opt","foglab","localActions")
 
+sshPubKeyFile = os.path.join(os.sep,"home","vagrant",".ssh","custom.pub")
+sshPubKeyFoglabFile = os.path.join(os.sep,"home","vagrant",".ssh","id_rsa.pub")
+
+
 def typeIpv4(ip):
   if not re.search("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$", ip):
     msg = "Invalid base ip %r. Ex: 192.168.55" % ip
@@ -64,8 +68,8 @@ def vm(args):
   labConfigFile = os.path.join(currdir,configFile)
 
   if not args.n is None:
-    if not args.f and os.path.isfile(labConfigFile):
-      print("Config file %r exists. Use -f to force overwrite" % configFile)
+    if not args.force and os.path.isfile(labConfigFile):
+      print("Config file %r exists. Use --force to overwrite" % configFile)
       raise SystemExit
 
     image = args.i
@@ -84,6 +88,13 @@ def vm(args):
       rsr("terraform apply -auto-approve")
     else:
       rsr("terraform apply")
+    vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
+    
+    addSshKeyFromFile(vms, "foglab", sshPubKeyFoglabFile)
+    
+    if os.path.isfile(sshPubKeyFile):
+      addSshKeyFromFile(vms, "custom", sshPubKeyFile)
+
     rsr("lxc list %s[0-9]+" % labName)
   
   if args.l:
@@ -133,33 +144,62 @@ def snap(args):
         sinfo = lxcq("GET","%s" % s)
         print("  %r : %r" % (sinfo['name'], sinfo['created_at']))
 
+# Add ssh key to list of vms
+def addSshKeyFromFile(vms, id, keyFile, force=False):
+  tmpFile = "/tmp/sshkey.pub"
+  commands = ["mkdir -p /root/.ssh",
+              "chmod 700 /root/.ssh/"]
+  if force:
+    commands.append("sed -i '/id@%s/d' .ssh/authorized_keys" % id)
+  
+  commands.extend(["grep -qF id@%s .ssh/authorized_keys || cat %s | sed 's/$/ id@%s/' >> /root/.ssh/authorized_keys" % (id, tmpFile, id),
+                    "chmod 600 /root/.ssh/authorized_keys"])
+  
+  for vm in vms:
+    resp = rsr("lxc file push %r %r/%r" % (keyFile, vm, tmpFile))
+    if resp != 0:
+      print("Failed to push file: %r! Resp: %s" % (keyFile, resp))
+    else:
+      for cmd in commands:
+        resp = rsr("lxc exec %r -- bash -c %r" % (vm, cmd))
+        if resp != 0:
+          print("Failed! cmd: %s, resp: %s" % (cmd, resp))
+          break
+
+    if resp != 0:
+      print("Failed to add %s SSH key to vm %r" % (id, vm))
+
+
 def sshkey(args):
   currdir = os.getcwd()
   labName = os.path.basename(currdir)
-  key = args.key if args.key is not None else input("Please enter the ssh public key to use:")
-  vms = [];
+  key = ""
+  fileExists = False
 
-  if key == "":
-    print("No key entered!")
-    raise SystemExit
+  if os.path.isfile(sshPubKeyFile):
+      print("Custom SSH key exists. Use --force to overwrite")
+      fileExists = True
+  
+  if not fileExists or args.force:
+    key = args.key if args.key is not None else input("Please enter the ssh public key to use: ")
+    if key == "":
+      print("No value entered!")
+      raise SystemExit
+    
+    f = open(sshPubKeyFile,"w+")
+    f.write("%s\n" % key)
+    f.close()
+    print("Custom key saved!")
 
-  # this file is used latter on by terraform to inject the keys
-  sshPubKeyFile = "/home/vagrant/.ssh/foglab.pub"
-  f = open(sshPubKeyFile,"w+")
-  f.write("%s\n" % key)
-  f.close()
+  vms = []
   
   if args.all:
     vms = rso("lxc list -cn --format csv").split()
   elif args.lab:
     vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
-    
-  for vm in vms:
-    resp = rsr(". /opt/foglab/scripts/lxc_utils.sh && addSSHKey %s %s" % (vm, sshPubKeyFile))
-    if resp == 0:
-      print("Key added to %s" % vm);
-    else:
-      print("Error adding key to %s" % vm);
+  
+  addSshKeyFromFile(vms,"custom", sshPubKeyFile, args.force)
+  print("Done!")
   
 
 # Argument parser
@@ -182,8 +222,8 @@ parser_vm = subparsers.add_parser('vm')
 parser_vm.add_argument('-i', choices=['ubuntu:18.04', 'centos/7'], default='ubuntu:18.04', help='The image to use. Default: ubuntu:18.04')
 parser_vm.add_argument('-n', type=int, help='The number of machines to create in the lab')
 parser_vm.add_argument('-a', action='store_true', default=False, help='Apply the config')
-parser_vm.add_argument('-f', action='store_true', default=False, help='Force the config creation')
 parser_vm.add_argument('-l', action='store_true', default=False, help='Lab machines status')
+parser_vm.add_argument('--force', action='store_true', default=False, help='Force the config creation')
 parser_vm.add_argument('--destroy', action='store_true', default=False, help='Destroy all machines')
 parser_vm.add_argument('--cpu', type=int, default=1, help='Number of cpus on each machine. Default: 1')
 parser_vm.add_argument('--mem', type=int, default=256, help='Memory (MB) on each machine. Default: 256.')
@@ -200,6 +240,7 @@ parser_ssh = subparsers.add_parser('sshkey')
 parser_ssh.add_argument('--key', help='Configure the ssh public key to use when creating new machines')
 parser_ssh.add_argument('--lab', action='store_true', default=False, help='Will distribute the key to running vms in the current lab. Default: False')
 parser_ssh.add_argument('--all', action='store_true', default=False, help='Will distribute the key to all running vms in foglab. Default: False')
+parser_ssh.add_argument('--force', action='store_true', default=False, help='Force the ssh key overwrite')
 parser_ssh.set_defaults(func=sshkey)
 
 args = parser.parse_args()
