@@ -132,9 +132,8 @@ class TestFogCtlSshKey(unittest.TestCase):
     def test_01_foglab_key_exists(self):
         self.assertEqual(rso("ls /home/vagrant/.ssh/id_rsa.pub | wc -l"), '1')
 
-    def test_02_foglab_key_works(self):
-        ip = rso("lxc list %s -c4 --format csv | cut -d ' ' -f1" % (self.labName+"01"))
-        self.assertEqual(rsr("ssh -o ConnectTimeout=10 root@%s pwd" % (ip)), 0)
+    def test_02_foglab_key_in_container(self):
+        self.assertEqual(rso("lxc exec %s grep foglab /root/.ssh/authorized_keys | wc -l" % (self.labName+"01")), '1')
 
     def test_03_add(self):
         self.assertEqual(rsr("cd %s && fogctl sshkey --key sshkey1 --force" % self.testDir), 0)
