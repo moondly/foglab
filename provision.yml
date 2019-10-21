@@ -21,12 +21,16 @@
       vars:
         list:
           - dnsmasq
-          - lxd
-          - lxd-client
           - criu
           - unzip
           - bridge-utils
           - thin-provisioning-tools
+          - git
+    
+    - name: Install "lxd" with option --channel=3.0/stable
+      snap:
+        name: lxd
+        channel: 3.0/stable
     
     - name: Set timezone
       timezone:
