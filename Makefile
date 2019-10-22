@@ -1,5 +1,5 @@
 box-name := bento/ubuntu-18.04
-box-version := 201906.18.0
+box-version := 201910.20.0
 devbox-name := devfoglab
 devbox-build := foglab-build
 hasBaseBox := $(shell vagrant box list | grep "$(box-name)" | grep $(box-version) | wc -l)
