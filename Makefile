@@ -6,14 +6,23 @@ hasBaseBox := $(shell vagrant box list | grep "$(box-name)" | grep $(box-version
 hasDevBox := $(shell vagrant box list | grep $(devbox-name) | wc -l)
 hasBuildVmRunning := $(shell VBoxManage list runningvms | grep "$(devbox-build)" | wc -l)
 hasBuildVm := $(shell VBoxManage list vms | grep "$(devbox-build)" | wc -l)
+hasEnvPlugin := $(shell vagrant plugin list | grep "vagrant-env" | wc -l)
 
 .PHONY: build test clean
 
-build : foglab.json provision.yml
-ifeq ($(strip $(hasBaseBox)),)
+build : foglab.json provision.yml env
+ifeq ($(strip $(hasBaseBox)),0)
 				vagrant box add $(box-name) --provider virtualbox --box-version $(box-version)
 endif
-				packer build -force foglab.json
+ifeq ($(strip $(hasEnvPlugin)),0)
+				vagrant plugin install vagrant-env
+endif
+				packer build -var "vagrant_box=$(box-name)" -var "vagrant_box_version=$(box-version)" -force foglab.json
+				@rm .env
+
+env :
+				@echo BOX_NAME=$(box-name) > .env
+				@echo BOX_VERSION=$(box-version) >> .env
 
 add : ./build/package.box
 				vagrant box add devfoglab ./build/package.box --force

@@ -1,9 +1,13 @@
 {
+  "variables": {
+    "vagrant_box": "bento/ubuntu-18.04",
+    "vagrant_box_version": "201906.18.0"
+  },
   "builders": [
     {
       "communicator": "ssh",
-      "source_path": "bento/ubuntu-18.04",
-      "box_version": "201906.18.0",
+      "source_path": "{{user `vagrant_box`}}",
+      "box_version": "{{user `vagrant_box_version`}}",
       "add_force": false,
       "skip_add": true,
       "provider": "virtualbox",
