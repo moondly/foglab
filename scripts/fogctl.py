@@ -81,20 +81,23 @@ def vm(args):
   configFile = "lab.tf"
   labName = os.path.basename(currdir)
   labConfigFile = os.path.join(currdir,configFile)
+  
+  itype = "ubuntu"
+  image = args.i
+
+  if re.search("centos", image):
+    image = "images:"+image
+    itype = "centos"
 
   if not args.n is None:
     if not args.force and os.path.isfile(labConfigFile):
       print("Config file %r exists. Use --force to overwrite" % configFile)
       raise SystemExit
 
-    image = args.i
-    itype = "ubuntu"
     ip = args.ip if args.ip is not None else -1
     cpu = args.cpu
     mem = args.mem
-    if re.search("centos", image):
-      image = "images:"+image
-      itype = "centos"
+    
     action("tfTemplate", "create", "{'n': %d,'lab_name': %r, 'dir': %r, 'image': %r, 'type': %r, 'ip': %d, 'cpu' : %d, 'mem': %d}" % (args.n, labName, currdir, image, itype, ip, cpu, mem))
 
   if args.a:
@@ -222,7 +225,7 @@ def sshkey(args):
   
 
 # Argument parser
-parser = argparse.ArgumentParser(prog='foglab')
+parser = argparse.ArgumentParser(prog='fogctl')
 subparsers = parser.add_subparsers(title='subcommands')
 
 parser_swap = subparsers.add_parser('swap')
