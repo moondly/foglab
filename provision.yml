@@ -337,11 +337,16 @@
             dest: "{{ homedir }}/scripts"
             owner: root
             group: root
-            mode: 0655
+            mode: 0755
         - name: config fogctl symbolic link
           file:
             dest: /usr/local/bin/fogctl
             src: "{{ homedir }}/scripts/fogctl.py"
+            state: link
+        - name: config dropctl symbolic link
+          file:
+            dest: /usr/local/bin/dropctl
+            src: "{{ homedir }}/scripts/dropctl.py"
             state: link
 
     - name: Configure dns
@@ -430,10 +435,13 @@
         group: root
         mode: 0644
       loop:
-        - { name: "FOGLAB_HOME", value: "{{ homedir}}" }
+        - { name: "FOGLAB_HOME", value: "{{ homedir }}" }
         - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }
         - { name: "FOGLAB_BUILD_DATE", value: "{{ ansible_facts['date_time']['iso8601'] }}" }
         - { name: "ANSIBLE_LOCALHOST_WARNING", value: "False"}
+        - { name: "ANSIBLE_INVENTORY_CACHE", value: "True"}
+        - { name: "ANSIBLE_INVENTORY_CACHE_PLUGIN", value: "jsonfile"}
+        - { name: "ANSIBLE_CACHE_PLUGIN_CONNECTION", value: "/tmp/ansibleFactsCache"}
         
         
 

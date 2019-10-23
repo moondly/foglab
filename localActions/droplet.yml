@@ -1,0 +1,35 @@
+- hosts: localhost
+  gather_facts: no
+  vars:
+    dir: "./"
+    droplet_name: demo
+
+  tasks:
+    - name: Create droplet dir
+      file:
+        path: "{{ dir }}/{{ droplet_name }}"
+        owner: vagrant
+        group: vagrant
+        mode: '0700'
+        state: directory
+
+    - name: create infra
+      template:
+        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/lab.tf"
+        dest: "{{ dir }}/{{ droplet_name }}/lab.tf"
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+    
+    - name: create readme
+      template:
+        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/readme.j2"
+        dest: "{{ dir }}/{{ droplet_name }}/README"
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+    
+    - name: Display all variables/facts known for a host
+      debug:
+        var: hostvars[inventory_hostname]
+      tags: debug_info
