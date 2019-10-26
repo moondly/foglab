@@ -13,10 +13,10 @@
         mode: '0700'
         state: directory
 
-    - name: create infra
+    - name: Create infra
       template:
-        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/lab.tf"
-        dest: "{{ dir }}/{{ droplet_name }}/lab.tf"
+        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/infra.tf"
+        dest: "{{ dir }}/{{ droplet_name }}.tf"
         owner: vagrant
         group: vagrant
         mode: '0644'
