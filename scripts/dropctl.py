@@ -41,7 +41,7 @@ def init(args):
   print("Done!")
   
 
-def create(args):
+def apply(args):
   currDir = os.getcwd()
   playbook = LOCAL_ACTIONS_DIR + "/droplet.yml"
   name = args.name
@@ -93,9 +93,10 @@ parser_swap.add_argument('--update', action='store_true', default=False , help='
 parser_swap.set_defaults(func=init)
 
 
-parser_create = subparsers.add_parser('create')
+parser_create = subparsers.add_parser('apply')
 parser_create.add_argument('name', type=str, help='The droplet name')
-parser_create.set_defaults(func=create)
+parser_create.add_argument('-i', choices=['ubuntu:18.04', 'centos/7'], default='ubuntu:18.04', help='The image to use. Default: ubuntu:18.04. TODO: detect from lab.tf!!')
+parser_create.set_defaults(func=apply)
 
 parser_destroy = subparsers.add_parser('destroy')
 parser_destroy.add_argument('name', type=str, help='The droplet name to destroy')
