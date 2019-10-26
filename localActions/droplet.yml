@@ -15,21 +15,8 @@
 
     - name: Create infra
       template:
-        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/infra.tf"
-        dest: "{{ dir }}/{{ droplet_name }}.tf"
+        src: "{{ droplet_dir }}/drops/{{droplet_name}}/infra.tf"
+        dest: "{{ dir }}/{{ droplet_name }}/infra.tf"
         owner: vagrant
         group: vagrant
         mode: '0644'
-    
-    - name: create readme
-      template:
-        src: "{{ droplet_dir }}/drops/{{droplet_name}}/templates/readme.j2"
-        dest: "{{ dir }}/{{ droplet_name }}/README"
-        owner: vagrant
-        group: vagrant
-        mode: '0644'
-    
-    - name: Display all variables/facts known for a host
-      debug:
-        var: hostvars[inventory_hostname]
-      tags: debug_info
