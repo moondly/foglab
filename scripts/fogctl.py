@@ -37,6 +37,24 @@ def lxcq(op, path):
   resp = json.loads(rso("lxc query -X %s %s" % (op.upper(), path)))
   return resp
 
+def terraformData():
+  resp = json.loads(rso("terraform show -json"))
+  return resp
+
+def terraformHosts():
+  data = terraformData()
+  resp = []
+  if "values" in data:
+    for i in data["values"]["root_module"]["resources"]:
+      resp.append(i["name"])
+
+  return resp
+
+def printLxdStatus():
+  vms = terraformHosts()
+  for host in vms:
+    rsr("lxc list %r" % host)
+
 def randomString(stringLength=10):
     """Generate a random string of fixed length """
     letters = string.ascii_lowercase
@@ -106,7 +124,8 @@ def vm(args):
       rsr("terraform apply -auto-approve")
     else:
       rsr("terraform apply")
-    vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
+
+    vms = terraformHosts()
     
     vmProvisioning(vms, itype)
 
@@ -117,10 +136,10 @@ def vm(args):
 
     rsr("terraform-inventory --inventory . > .hosts")
 
-    rsr("lxc list %s[0-9]+" % labName)
+    printLxdStatus()
   
   if args.l:
-    rsr("lxc list %s[0-9]+" % labName)
+    printLxdStatus()
 
   if args.destroy:
     resp = 1
@@ -140,11 +159,9 @@ def vm(args):
     
 
 def snap(args):
-  currdir = os.getcwd()
-  labName = os.path.basename(currdir)
   action = args.action
   label = args.label if args.label is not None else randomString()
-  vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
+  vms = terraformHosts()
   for vm in vms:
     if action == "create":
       resp = rsr("lxc snapshot %s %s" % (vm, label))
@@ -193,8 +210,6 @@ def addSshKeyFromFile(vms, id, keyFile, force=False):
 
 
 def sshkey(args):
-  currdir = os.getcwd()
-  labName = os.path.basename(currdir)
   key = ""
   fileExists = False
 
@@ -218,7 +233,7 @@ def sshkey(args):
   if args.all:
     vms = rso("lxc list -cn --format csv").split()
   elif args.lab:
-    vms = rso("lxc list -cn --format csv %s[0-9]+" % labName).split()
+    vms = terraformHosts()
   
   addSshKeyFromFile(vms,"custom", sshPubKeyFile, args.force)
   print("Done!")
