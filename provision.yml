@@ -194,6 +194,7 @@
                     dhcp-option-force=26,1500
                     auth-zone=lab
                     dns-loop-detect
+                    cache-size=0
               storage_pools:
               - name: lxd
                 driver: lvm
@@ -379,6 +380,7 @@
             - "server=/lab/{{ base_segment }}.100"
             - "bind-interfaces"
             - "except-interface=lxdbr0"
+            - "cache-size=0"
         - name: Remove resolv symlink
           file:
             path: /etc/resolv.conf
@@ -392,6 +394,7 @@
             group: root
             mode: 0644
           loop:
+            - "search lab"
             - "nameserver 127.0.0.1"
             - "nameserver 8.8.8.8"
         - name: Register foglab in dns 
