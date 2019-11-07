@@ -134,7 +134,7 @@ def vm(args):
     if os.path.isfile(sshPubKeyFile):
       addSshKeyFromFile(vms, "custom", sshPubKeyFile)
 
-    rsr("terraform-inventory --inventory . > .hosts")
+    rsr("terraform-inventory --inventory . > .%s.hosts" % labName)
 
     printLxdStatus()
   
@@ -149,7 +149,7 @@ def vm(args):
       resp = rsr("terraform destroy")
 
     if resp == 0:
-      for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup', '.hosts']:
+      for f in [labConfigFile, 'terraform.tfstate', 'terraform.tfstate.backup', '.%s.hosts' % labName]:
         if os.path.isfile(f):
           os.remove(f)
       try:

@@ -442,6 +442,7 @@
         - { name: "FOGLAB_BASE_IP_SEGMENT", value: "{{ base_segment }}" }
         - { name: "FOGLAB_BUILD_DATE", value: "{{ ansible_facts['date_time']['iso8601'] }}" }
         - { name: "ANSIBLE_LOCALHOST_WARNING", value: "False"}
+        - { name: "ANSIBLE_DEPRECATION_WARNINGS", value: "False"}
         - { name: "ANSIBLE_INVENTORY_CACHE", value: "True"}
         - { name: "ANSIBLE_INVENTORY_CACHE_PLUGIN", value: "jsonfile"}
         - { name: "ANSIBLE_CACHE_PLUGIN_CONNECTION", value: "/tmp/ansibleFactsCache"}

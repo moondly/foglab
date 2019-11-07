@@ -8,11 +8,15 @@ import os
 import os.path
 import shutil
 
-home = Path.home()
-DROPLET_DIR=os.path.join(os.sep,home,".droplets")
-DROPLET_GITREPO="https://github.com/moondly/droplets.git"
-DROPLET_ROLES_DIR=os.path.join(os.sep,DROPLET_DIR,"drops")
+USER_HOME = Path.home()
+DROP_LIB_DIR=os.path.join(os.sep,USER_HOME,".droplets")
+DROP_GITREPO="https://github.com/moondly/droplets.git"
+DROP_ROLES_DIR=os.path.join(os.sep,DROP_LIB_DIR,"drops")
+ANSIBLE_ROLES_PATH=["~/.ansible/roles","/usr/share/ansible/roles","/etc/ansible/roles", DROP_ROLES_DIR]
 LOCAL_ACTIONS_DIR=os.path.join(os.sep,"opt","foglab","localActions")
+
+CURRENT_DIR = os.getcwd()
+PUBLISH_HOSTS_DIR = os.path.join(os.sep,CURRENT_DIR,".droplets")
 
 # Run command using shell and return stdout
 def rso(cmd):
@@ -22,18 +26,17 @@ def rso(cmd):
 
 # Run command using shell and return response code
 def rsr(cmd):
-    resp = subprocess.call(cmd, shell=True)
-    return resp
+    return int(subprocess.call(cmd, shell=True))
 
 def init(args):
 
   if args.update:
-    resp = rsr("cd %r && git pull" % (DROPLET_DIR))
+    resp = rsr("cd %r && git pull" % (DROP_LIB_DIR))
     if resp != 0:
       print("Could not pull git (CODE: %s)" % resp)
       raise SystemExit
   else:
-    resp = rsr("git clone %r %r" % (DROPLET_GITREPO, DROPLET_DIR))
+    resp = rsr("git clone %r %r" % (DROP_GITREPO, DROP_LIB_DIR))
     if resp != 0:
       print("Could not clone git (CODE: %s)" % resp)
       raise SystemExit
@@ -41,67 +44,101 @@ def init(args):
   print("Done!")
   
 
+def runAnsible(name, deployDir, playbook, user="root"):
+  extraVars = "{'home': %r, 'drop_home': %r, 'drop_name': %r, 'drop_lib_dir': %r}" % (CURRENT_DIR, deployDir, name, DROP_LIB_DIR)
+  return rsr("ANSIBLE_ROLES_PATH=%r ansible-playbook %r -i %r -u %r --extra-vars %r" % (":".join(ANSIBLE_ROLES_PATH), playbook, PUBLISH_HOSTS_DIR, user, extraVars))
+
 def apply(args):
-  currDir = os.getcwd()
   name = args.name
   phases = args.phases
   
   print("Phases to run: %r" % phases)
 
-  initTasks = os.path.join(os.sep,LOCAL_ACTIONS_DIR,"droplet.yml")
-  requirements = os.path.join(os.sep,DROPLET_ROLES_DIR,name,"requirements.yml")
-  preLocal = os.path.join(os.sep,DROPLET_ROLES_DIR,name,"preLocal.yml")
-  mainFile = os.path.join(os.sep,DROPLET_ROLES_DIR,name,"provision.yml")
-  posLocal = os.path.join(os.sep,DROPLET_ROLES_DIR,name,"posLocal.yml")
+  infraFile = os.path.join(os.sep,DROP_ROLES_DIR,name,"infra.tf")
+  reqFile = os.path.join(os.sep,DROP_ROLES_DIR,name,"requirements.yml")
+  preFile = os.path.join(os.sep,DROP_ROLES_DIR,name,"pre.yml")
+  provFile = os.path.join(os.sep,DROP_ROLES_DIR,name,"provision.yml")
+  posFile = os.path.join(os.sep,DROP_ROLES_DIR,name,"pos.yml")
   
-  deployToDir = os.path.join(os.sep,currDir,name)
-  rolesPath = ["~/.ansible/roles","/usr/share/ansible/roles","/etc/ansible/roles", DROPLET_ROLES_DIR]
+  deployToDir = os.path.join(os.sep,CURRENT_DIR, name)
 
   print("Creating droplet: %r" % name)
 
   # Local actions
   if 'all' in phases or 'init' in phases:
-    print("Init and infra phases")
-    extra = "{'droplet_name': %r, 'dir': %r, 'droplet_dir': %r}" % (name, currDir, DROPLET_DIR)
-    rsr("ansible-playbook %r --extra-vars %r" % (initTasks, extra))
+    print("Init")
+    # publish the hosts
+    print(deployToDir)
+    if not os.path.isdir(deployToDir):
+      resp = rsr("mkdir %r" % deployToDir)
 
-  # Install prereq
-  if 'all' in phases or 'prereq' in phases:
-    if os.path.isfile(requirements):
-      rsr("ansible-galaxy install -r %r" % (requirements))
+    # copy the infra file
+    resp = rsr("cp %r %r" % (infraFile, os.path.join(os.sep, deployToDir, "infra.tf")))
+    if resp != 0:
+      print("INIT failed (CODE: %s)" % resp)
+      raise SystemExit
 
-  # Run preLocal prereq
-  if 'all' in phases or 'prelocal' in phases:
-    if os.path.isfile(preLocal):
-      print("PreLocal phase")
-      extra = "{'drop_home': %r, 'drop_name': %r}" % (deployToDir, name)
-      rsr("ansible-playbook %r --extra-vars %r" % (preLocal, extra))
+  # Install req
+  if 'all' in phases or 'req' in phases:
+    if os.path.isfile(reqFile):
+      resp = rsr("ansible-galaxy install -r %r" % (reqFile))
+      if resp != 0:
+        print("REQ failed (CODE: %s)" % resp)
+        raise SystemExit
+
+  # Run pre req
+  if 'all' in phases or 'pre' in phases:
+    if os.path.isfile(preFile):
+      print("PRE phase")
+      resp = runAnsible(name, deployToDir, preFile)
+      if resp != 0:
+        print("PRE failed (CODE: %s)" % resp)
+        raise SystemExit
   
   # Infra deployment
   if 'all' in phases or 'infra' in phases:
-    rsr("cd %r && fogctl vm -a --approve" % (deployToDir))
+    if os.path.isfile(infraFile):
+      print("INFRA phase")
+      resp = rsr("cd %r && fogctl vm -a --approve" % (deployToDir))
+      if resp != 0:
+        print("INFRA failed (CODE: %s)" % resp)
+        raise SystemExit
+    
+      # publish the hosts
+      if not os.path.isdir(PUBLISH_HOSTS_DIR):
+        rsr("mkdir %r" % PUBLISH_HOSTS_DIR)
+      
+      # Publish the inventories using a symlink in PUBLISH_HOSTS_DIR
+      rsr("ln -sf %r %r" % (os.path.join(os.sep, deployToDir, ".%s.hosts" % name), os.path.join(os.sep,PUBLISH_HOSTS_DIR,"%s.hosts" % name)))
 
-  # Remote provisioning
-  if 'all' in phases or 'provisioning' in phases:
-    rsr("cd %r && ANSIBLE_ROLES_PATH=%r ansible-playbook -i .hosts %r -u root " % (deployToDir,":".join(rolesPath),mainFile))
-
-  # Run posLocal prereq
-  if 'all' in phases or 'poslocal' in phases:
-    if os.path.isfile(posLocal):
-      print("PosLocal phase")
-      extra = "{'drop_home': %r, 'drop_name': %r}" % (deployToDir, name)
-      rsr("ansible-playbook %r --extra-vars %r" % (posLocal, extra))
+  # Remote prov
+  if 'all' in phases or 'prov' in phases:
+    resp = runAnsible(name, deployToDir, provFile)
+    if resp != 0:
+      print("PROVISIONING failed (CODE: %s)" % resp)
+      raise SystemExit
+  # Run pos req
+  if 'all' in phases or 'pos' in phases:
+    if os.path.isfile(posFile):
+      print("POS phase")
+      resp = runAnsible(name, deployToDir, posFile)
+      if resp != 0:
+        print("POS failed (CODE: %s)" % resp)
+        raise SystemExit
 
   # Info
-  if 'all' in phases or 'readme' in phases:
-    rsr("cd %r && cat %r" % (deployToDir, "README"))
+  if 'all' in phases or 'info' in phases:
+    resp = rsr("cd %r && cat %r" % (deployToDir, "README"))
+    if resp != 0:
+      print("Readme failed (CODE: %s)" % resp)
+      raise SystemExit
   
   print("Done!")
 
 def destroy(args):
-  currDir = os.getcwd()
-  name = args.name
-  deployToDir = os.path.join(os.sep,currDir,name)
+  name = args.name.replace("/","")
+  deployToDir = os.path.join(os.sep,CURRENT_DIR,name)
+
   print("Remove droplet: %r" % name)
 
   if not os.path.isdir(deployToDir):
@@ -110,8 +147,18 @@ def destroy(args):
 
   rsr("cd %r && fogctl vm --destroy --approve" % (deployToDir))
 
+  # published hosts
+  publishedHostsFile = os.path.join(os.sep,PUBLISH_HOSTS_DIR,"%s.hosts" % name)
+  if os.path.isfile(publishedHostsFile):
+    rsr("rm %r" % publishedHostsFile)
+
   try:
     shutil.rmtree(deployToDir)
+    if os.path.isdir(PUBLISH_HOSTS_DIR):
+      n = rso("ls %r | wc -l" % PUBLISH_HOSTS_DIR)
+      if n == "0":
+        shutil.rmtree(PUBLISH_HOSTS_DIR)
+
   except OSError as e:
     pass
 
@@ -125,11 +172,10 @@ parser_swap = subparsers.add_parser('init')
 parser_swap.add_argument('--update', action='store_true', default=False , help='Checkout the latest changes from the droplet remote repo')
 parser_swap.set_defaults(func=init)
 
-
 parser_create = subparsers.add_parser('apply')
 parser_create.add_argument('name', type=str, help='The droplet name')
 parser_create.add_argument('-i', choices=['ubuntu:18.04', 'centos/7'], default='ubuntu:18.04', help='The image to use. Default: ubuntu:18.04. TODO: detect from lab.tf!!')
-parser_create.add_argument('--phases', nargs='+', choices=['all', 'init', 'prereq', 'prelocal', 'infra', 'provisioning', 'poslocal', 'readme'], default=['all'], help='Phases to run')
+parser_create.add_argument('--phases', nargs='+', choices=['all', 'init', 'req', 'pre', 'infra', 'prov', 'pos', 'info'], default=['all'], help='Phases to run')
 parser_create.set_defaults(func=apply)
 
 parser_destroy = subparsers.add_parser('destroy')
