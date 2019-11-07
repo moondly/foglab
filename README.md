@@ -34,6 +34,8 @@ Foglab uses a combination of technologies like LXD, Terraform and Ansible to pro
     vagrant ssh
     ``` 
 You are now ready to start creating your own labs in foglab!
+### Using `droplets`
+Check [here](DROPLET.md)
 
 ### Managing `foglab`
 #### To pause/resume foglab
@@ -161,11 +163,11 @@ Check `fogctl snapshot -h` for more options.
     ssh root@<ip>
     ```
 #### DNS names
-When a new vm is created, it is registered in foglab dns and can be accessed using `<name>.lab`
+When a new vm is created, it is registered in foglab dns and can be accessed using `<name>` or `<name>.lab`
 ```
 vagrant ssh
 
-ping <name>.lab
+ping <name>
 ```
 
 # For Developers
